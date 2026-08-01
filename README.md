@@ -153,7 +153,7 @@ Other scripts:
 
 ## Contributing
 
-Issues and pull requests are tracked on GitHub. `1.0.x` is the repository's single active branch.
+Issues and pull requests are tracked on GitHub. `2.0.x` is the repository's single active branch, tracking the webship-js 2.0.x line.
 
 ## Credits
 

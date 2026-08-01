@@ -2,9 +2,9 @@ name: Test
 
 on:
   push:
-    branches: ['1.0.x']
+    branches: ['2.0.x']
   pull_request:
-    branches: ['1.0.x']
+    branches: ['2.0.x']
   workflow_dispatch:
 
 env:

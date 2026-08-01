@@ -1,7 +1,7 @@
 'use strict';
 
 // ---------------------------------------------------------------------------
-// @webship/diffy-steps — Diffy visual-regression step definitions for webship-js
+// @webship-js/diffy-steps — Diffy visual-regression step definitions for webship-js
 //
 // Plugin for webship-js (https://www.npmjs.com/package/webship-js): relies on
 // the World it installs (this.page, this.parameters) and adds nothing to it.

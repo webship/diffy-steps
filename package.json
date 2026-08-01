@@ -1,5 +1,5 @@
 {
-  "name": "@webship/diffy-steps",
+  "name": "@webship-js/diffy-steps",
   "version": "2.0.0",
   "description": "Diffy-specific Cucumber step definitions plugin for webship-js — visual-regression testing for any site via the Diffy REST API (Playwright + Cucumber).",
   "main": "tests/step-definitions/diffy.steps.js",

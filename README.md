@@ -1,8 +1,8 @@
-# @webship/diffy-steps
+# @webship-js/diffy-steps
 
 [![Test](https://github.com/webship/diffy-steps/actions/workflows/test.yml/badge.svg)](https://github.com/webship/diffy-steps/actions/workflows/test.yml)
 
-Diffy-specific Cucumber step definitions for [webship-js](https://www.npmjs.com/package/webship-js) — a Playwright + Cucumber BDD testing framework. `@webship/diffy-steps` adds a `diffy.steps.js` step-pack that captures full-page Playwright screenshots at multiple breakpoints and drives [Diffy](https://diffy.website) visual-regression comparisons through the Diffy REST API, so you can express visual checks as readable Gherkin instead of hand-rolling API calls.
+Diffy-specific Cucumber step definitions for [webship-js](https://www.npmjs.com/package/webship-js) — a Playwright + Cucumber BDD testing framework. `@webship-js/diffy-steps` adds a `diffy.steps.js` step-pack that captures full-page Playwright screenshots at multiple breakpoints and drives [Diffy](https://diffy.website) visual-regression comparisons through the Diffy REST API, so you can express visual checks as readable Gherkin instead of hand-rolling API calls.
 
 It is a **plugin for webship-js** — it does not run standalone. It ships one file of step definitions; you drop it into an existing (or new) webship-js test project.
 
@@ -27,7 +27,7 @@ See [tests/step-definitions/diffy.steps.js](tests/step-definitions/diffy.steps.j
 ## Installation
 
 ```bash
-npm install --save-dev webship-js @webship/diffy-steps
+npm install --save-dev webship-js @webship-js/diffy-steps
 ```
 
 Add both step-definition paths to your project's `cucumber.js`:
@@ -37,7 +37,7 @@ module.exports = {
   default: {
     require: [
       'node_modules/webship-js/tests/step-definitions/**/*.js', // webship-js core steps
-      'node_modules/@webship/diffy-steps/tests/step-definitions/**/*.js', // this plugin
+      'node_modules/@webship-js/diffy-steps/tests/step-definitions/**/*.js', // this plugin
       'tests/step-definitions/**/*.js', // your own custom steps, if any
     ],
     paths: ['tests/features/**/*.feature'],

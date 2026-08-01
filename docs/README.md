@@ -1,6 +1,6 @@
-# diffy-steps documentation
+# @webship/diffy-steps documentation
 
-Per-step reference for the `diffy-steps` plugin for [webship-js](https://www.npmjs.com/package/webship-js).
+Per-step reference for the `@webship/diffy-steps` plugin for [webship-js](https://www.npmjs.com/package/webship-js).
 
 Start with the [root README](../README.md) for installation, configuration, and the environment-variable table. The [step-definitions README](../tests/step-definitions/README.md) carries the deep reference: the adoption walkthrough, the Diffy REST API endpoint map, the Diffy-side IP allow-list, and links into Diffy's own documentation.
 

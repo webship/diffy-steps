@@ -1,6 +1,6 @@
 {
-  "name": "diffy-steps",
-  "version": "0.1.0",
+  "name": "@webship/diffy-steps",
+  "version": "2.0.0",
   "description": "Diffy-specific Cucumber step definitions plugin for webship-js — visual-regression testing for any site via the Diffy REST API (Playwright + Cucumber).",
   "main": "tests/step-definitions/diffy.steps.js",
   "files": [
@@ -42,6 +42,9 @@
     "url": "https://github.com/webship/diffy-steps/issues"
   },
   "homepage": "https://github.com/webship/diffy-steps#readme",
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "axios": "~1"
   },

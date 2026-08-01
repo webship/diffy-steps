@@ -1,0 +1,58 @@
+{
+  "name": "diffy-steps",
+  "version": "0.1.0",
+  "description": "Diffy-specific Cucumber step definitions plugin for webship-js — visual-regression testing for any site via the Diffy REST API (Playwright + Cucumber).",
+  "main": "tests/step-definitions/diffy.steps.js",
+  "files": [
+    "tests/step-definitions/diffy.steps.js",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "start": "http-server examples -p 8080 -s",
+    "test": "cucumber-js --config cucumber.js",
+    "test:dry": "cucumber-js --config cucumber.js --dry-run",
+    "test:chromium": "BROWSER=chromium cucumber-js --config cucumber.js",
+    "test:firefox": "BROWSER=firefox cucumber-js --config cucumber.js",
+    "test:webkit": "BROWSER=webkit cucumber-js --config cucumber.js",
+    "test:headed": "HEADLESS=false cucumber-js --config cucumber.js",
+    "generate-reports": "generate-reports"
+  },
+  "keywords": [
+    "webship-js",
+    "diffy",
+    "visual-regression",
+    "visual-testing",
+    "screenshot-testing",
+    "cucumber",
+    "cucumber-js",
+    "playwright",
+    "bdd",
+    "gherkin",
+    "step-definitions",
+    "e2e-testing"
+  ],
+  "author": "Webship.co",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/webship/diffy-steps.git"
+  },
+  "bugs": {
+    "url": "https://github.com/webship/diffy-steps/issues"
+  },
+  "homepage": "https://github.com/webship/diffy-steps#readme",
+  "dependencies": {
+    "axios": "~1"
+  },
+  "peerDependencies": {
+    "webship-js": "^2.0.4"
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1",
+    "webship-js": "^2.0.4"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

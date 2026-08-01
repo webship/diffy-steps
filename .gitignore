@@ -1,0 +1,12 @@
+node_modules/
+.claude/
+tests/reports/*.json
+tests/reports/*.html
+tests/reports/*.pdf
+!tests/reports/README.md
+screenshots/
+videos/
+*.log
+.env
+.env.local
+.DS_Store

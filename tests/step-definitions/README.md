@@ -27,7 +27,7 @@ and links into Diffy's own documentation.
 Install the plugin alongside webship-js:
 
 ```bash
-npm install --save-dev webship-js diffy-steps
+npm install --save-dev webship-js @webship/diffy-steps
 ```
 
 `diffy.steps.js` pulls in `axios` (a direct dependency of this package) plus
@@ -45,7 +45,7 @@ module.exports = {
     requireModule: ['tsx/cjs'],
     require: [
       'node_modules/webship-js/tests/step-definitions/**/*.js',
-      'node_modules/diffy-steps/tests/step-definitions/**/*.js',
+      'node_modules/@webship/diffy-steps/tests/step-definitions/**/*.js',
       'tests/step-definitions/**/*.js',
     ],
     paths: ['tests/features/**/*.feature'],
@@ -126,7 +126,7 @@ option.
 Start from one of this repository's reference features:
 
 ```bash
-cp node_modules/diffy-steps/tests/features/01-example-demo.feature \
+cp node_modules/@webship/diffy-steps/tests/features/01-example-demo.feature \
    tests/features/my-visual-regression.feature
 ```
 
@@ -157,8 +157,8 @@ examples (GitHub Actions, CircleCI, Tugboat, Platform.sh).
 ### Remove Diffy later (reversible)
 
 ```bash
-npm uninstall diffy-steps
-# then remove the 'node_modules/diffy-steps/**' line from cucumber.js require:
+npm uninstall @webship/diffy-steps
+# then remove the 'node_modules/@webship/diffy-steps/**' line from cucumber.js require:
 # and delete your own @diffy feature files.
 ```
 

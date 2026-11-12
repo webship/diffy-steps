@@ -1,16 +1,22 @@
-
 # Then create diffy comparison
 
-## Description
-This step generates a Diffy comparison (visual diff) by utilizing the two most recently uploaded snapshots.
+> Generated from the docblock of the step in `tests/step-definitions/diffy.steps.js`. Edit the docblock and run `npm run docs`.
 
-## Gherkin Syntax
-```gherkin
-Then (I |we )*create diffy comparison
+## Overview
+
+Compare the last two screenshot sets of this scenario in Diffy.
+
+## Diffy API
+
+POST projects/{id}/diffs
+
+## Gherkin step pattern
+
+```
+/^(I |we )*create diffy comparison$/
 ```
 
-## Usage Examples
-The step accepts several grammatical variations:
+## Examples
 
 ```gherkin
 Then create diffy comparison
@@ -19,7 +25,5 @@ Then I create diffy comparison
 Then we create diffy comparison
 And I create diffy comparison
 And we create diffy comparison
+But I create diffy comparison
 ```
-
-## Purpose
-Creates a visual comparison report from the last pair of snapshots that were uploaded to Diffy, allowing teams to identify visual regressions between environments or versions.

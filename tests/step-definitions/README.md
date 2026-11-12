@@ -1,352 +1,97 @@
-# Diffy step definitions — deep reference
+# Diffy steps: deep reference
 
-Captures screenshots with Playwright and uploads them to
-[Diffy](https://diffy.website) for visual-regression comparison via the Diffy
-REST API (`https://app.diffy.website/api/`).
+The pack is three files, loaded together by the `require` line shown in the [root README](../../README.md):
 
-`diffy.steps.js` is the one file this package publishes to npm. Everything else
-in the repository is the working test project that exercises it.
+| File | Content |
+| --- | --- |
+| `diffy.steps.js` | The step definitions. |
+| `diffy-client.js` | The Diffy API client: authentication, retries, errors, polling. It defines no step and does not load webship-js. |
+| `diffy-images.js` | Image width, media type and folder helpers. |
 
-For installation and the quick tour, read the [root README](../../README.md).
-This page is the deep reference: the adoption walkthrough, the full environment
-variable table, the Diffy REST API endpoint map, the Diffy-side IP allow-list,
-and links into Diffy's own documentation.
+This page is the adoption walkthrough and the contract notes. Installation, the variables and the steps are in the root README; each step has a generated page in [docs/steps](../../docs/README.md).
 
-## Adopt Diffy in a webship-js test project
+## Adopt the pack in a webship-js project
 
-> New to webship-js in your own project? First install and wire it up using
-> the official docs:
->
-> - **Install Webship JS** — https://webship.co/docs/webship-js/2.0.x/install-webship-js
-> - **Global Settings (`cucumber.js`)** — https://webship.co/docs/webship-js/2.0.x/global-settings
-> - **Step Definitions** — https://webship.co/docs/webship-js/2.0.x/step-definitions
->
-> Once webship-js is running in your project, the steps below add the Diffy
-> layer on top.
+New to webship-js? Install and configure it first:
 
-Install the plugin alongside webship-js:
+- [Install Webship JS](https://webship.co/docs/webship-js/2.0.x/install-webship-js)
+- [Global settings (`cucumber.js`)](https://webship.co/docs/webship-js/2.0.x/global-settings)
+- [Step definitions](https://webship.co/docs/webship-js/2.0.x/step-definitions)
 
-```bash
-npm install --save-dev webship-js @webship-js/diffy-steps
-```
+Then:
 
-The pack has no dependency of its own: it uses the Node 20+ built-ins
-(`fetch`, `FormData`, `Blob`, `fs`). It ships three files, `diffy.steps.js`
-(the steps), `diffy-client.js` (the API client) and `diffy-images.js` (image
-helpers); the `require` path in `cucumber.js` below loads them all.
+1. **Install** the pack: `npm install --save-dev webship-js @webship-js/diffy-steps`.
+2. **Load it** in `cucumber.js` (see the root README) and set `worldParameters.diffy.breakpoints` to widths your Diffy project has.
+3. **Create a Diffy project** at https://app.diffy.website, and an **API key** at https://app.diffy.website/#/keys. API access needs an account with a paid plan or a coupon. The project id is the number in the project's URL.
+4. **Export** the credentials in the shell or as CI secrets, never in a file that is committed:
 
-### 1. Edit `cucumber.js` — load the Diffy step definitions
+   ```bash
+   export DIFFY_API_KEY="..."
+   export DIFFY_PROJECT_ID="..."
+   ```
 
-Add the plugin's step-definition path to `require:` and set the `diffy` block
-inside `worldParameters` for project defaults.
+5. **Write a feature.** Start from `tests/features/01-example-demo.feature` of this repository, and begin with `Given the diffy project is reachable`: a wrong key or project id then fails before any capture, with a hint.
+6. **Run** `npx cucumber-js --config cucumber.js --tags "@diffy"`.
 
-```js
-module.exports = {
-  default: {
-    timeout: 60000,
-    requireModule: ['tsx/cjs'],
-    require: [
-      'node_modules/webship-js/tests/step-definitions/**/*.js',
-      'node_modules/@webship-js/diffy-steps/tests/step-definitions/**/*.js',
-      'tests/step-definitions/**/*.js',
-    ],
-    paths: ['tests/features/**/*.feature'],
-    format: [
-      '@cucumber/pretty-formatter',
-      'json:tests/reports/cucumber_report.json',
-    ],
-    formatOptions: {
-      colorsEnabled: true,
-      theme: {
-        'feature keyword': ['bold', 'blue'],
-        'feature name': ['blue', 'underline'],
-        'feature description': ['blueBright'],
-        'scenario keyword': ['bold', 'magenta'],
-        'scenario name': ['magenta', 'underline'],
-        'step keyword': ['bold', 'green'],
-        'step text': ['greenBright', 'italic'],
-      },
-    },
-    worldParameters: {
-      launchUrl: process.env.LAUNCH_URL || 'http://localhost:8080',
-      minWaitTime: {
-        page: 3000,
-        before_scenario: 0,
-        after_scenario: 0,
-        before_step: 0,
-        after_step: 0,
-      },
-      // Diffy (optional). Env vars (DIFFY_API_KEY, DIFFY_PROJECT_ID, …)
-      // always override these values. Never commit a real apiKey — prefer env.
-      // diffy: {
-      //   apiKey: '',                                  // DIFFY_API_KEY
-      //   projectId: '',                               // DIFFY_PROJECT_ID
-      //   breakpoints: '640,1200',                     // DIFFY_BREAKPOINTS
-      //   windowHeight: 2000,                          // DIFFY_WINDOW_HEIGHT
-      //   screenshotsDir: '',                          // DIFFY_SCREENSHOTS_DIR
-      //   baseUrl: 'https://app.diffy.website/api/',   // DIFFY_API_BASE_URL
-      //   maxWait: 1200,                               // DIFFY_MAX_WAIT (seconds)
-      //   env1Url: '',                                 // DIFFY_ENV1_URL (custom env)
-      //   env2Url: '',                                 // DIFFY_ENV2_URL (custom env)
-      // },
-    },
-  },
-};
-```
+To remove the pack later: `npm uninstall @webship-js/diffy-steps`, delete its line from the `require` list of `cucumber.js`, and delete your Diffy features.
 
-### 2. Create a Diffy project and collect credentials
+### In CI
 
-- Sign up or log in at https://app.diffy.website
-- Create a project (set base URL + breakpoints that match your tests)
-- Note the numeric **project id** shown in the project URL/settings
-- Copy an **API key** from https://app.diffy.website/#/keys
-
-### 3. Export Diffy env vars
-
-Add to `.env`, CI secrets, or your shell:
-
-```bash
-export DIFFY_API_KEY="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-export DIFFY_PROJECT_ID="00000"
-export DIFFY_BREAKPOINTS="640,1200"         # must match project config
-export DIFFY_WINDOW_HEIGHT="2000"           # optional
-export DIFFY_MAX_WAIT="1200"                # optional, polling timeout (s)
-```
-
-Or inline per run:
-
-```bash
-DIFFY_API_KEY="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" DIFFY_PROJECT_ID="00000" DIFFY_API_BASE_URL="https://app.diffy.website/api/" npm test
-```
-
-**Do not commit keys.** Put them in `.env.local` (git-ignored), CI secrets
-manager, or a vault. See the full variable table below for every supported
-option.
-
-### 4. Write or copy a Diffy feature file
-
-Start from one of this repository's reference features:
-
-```bash
-cp node_modules/@webship-js/diffy-steps/tests/features/01-example-demo.feature \
-   tests/features/my-visual-regression.feature
-```
-
-Edit it to list the pages you want compared. Keep the `@diffy` tag on each
-scenario.
-
-### 5. Run
-
-```bash
-# Run all features including Diffy scenarios.
-npm test
-
-# Run only Diffy-tagged scenarios.
-npx cucumber-js --config cucumber.js --tags "@diffy"
-
-# The same features against the real Diffy API (requires DIFFY_API_KEY and DIFFY_PROJECT_ID)
-npm run test:live
-```
-
-### 6. CI hookup (optional)
-
-Typical CI flow: run baseline on main → run candidate on PR branch →
-`create diffy comparison with name "PR-<number>"` → fail job if the comparison
-reports changes above your threshold. See the
-[automation docs](https://docs.diffy.website/automation/overview) for worked
-examples (GitHub Actions, CircleCI, Tugboat, Platform.sh).
-
-### Remove Diffy later (reversible)
-
-```bash
-npm uninstall @webship-js/diffy-steps
-# then remove the 'node_modules/@webship-js/diffy-steps/**' line from cucumber.js require:
-# and delete your own @diffy feature files.
-```
-
-## Environment variables
-
-| Variable                | Purpose                                                      | Default                              |
-| ----------------------- | ------------------------------------------------------------ | ------------------------------------ |
-| `DIFFY_API_KEY` | Diffy API key ([keys page](https://app.diffy.website/#/keys)); the account needs API access | *required* |
-| `DIFFY_PROJECT_ID` | Diffy project id | *required* |
-| `DIFFY_BREAKPOINTS` | Comma list of breakpoints, e.g. `"640,1200"` | `1200` |
-| `DIFFY_WINDOW_HEIGHT` | Viewport height in pixels | `2000` |
-| `DIFFY_SCREENSHOTS_DIR` | On-disk copy of the captured screenshots (debugging); only files the pack wrote are removed after an upload | *unset* |
-| `DIFFY_API_BASE_URL` | Override the API base URL | `https://app.diffy.website/api/` |
-| `DIFFY_MAX_WAIT` | Seconds a wait step polls before failing | `1200` |
-| `DIFFY_POLL_INTERVAL` | Seconds between polls | `10` |
-| `DIFFY_REQUEST_TIMEOUT` | Seconds one API call may take | `120` |
-| `DIFFY_FUNCTIONAL_TEST` | Mark uploaded screenshots as functional-test uploads, so their pages need not be in the project URL list. `false` to require the pages in the project | `true` |
-| `DIFFY_COMMIT_SHA` | Commit SHA sent with environment comparisons (GitHub check) | *unset* |
-| `DIFFY_ENV1_URL`, `DIFFY_ENV2_URL` | Address of a `custom` environment (`compare diffy "custom" with ...`; `DIFFY_ENV1_URL` also for `create diffy screenshot from "custom" environment`) | *unset* |
-| `DIFFY_ENV1_USER`, `DIFFY_ENV1_PASS`, `DIFFY_ENV2_USER`, `DIFFY_ENV2_PASS` | Basic-authentication login of a `custom` environment | *unset* |
-
-## Steps
-
-| Step | Diffy API call |
-|------|----------------|
-| `When I resize window to "<px>"` | — (Playwright viewport) |
-| `Then I take screenshot` | — (buffered in World) |
-| `Then I take screenshots for all breakpoints` | — (loops `DIFFY_BREAKPOINTS`) |
-| `Then send screenshots to diffy with name "<name>"` | `POST projects/{id}/create-custom-snapshot` |
-| `Then create diffy comparison` | `POST projects/{id}/diffs` |
-| `Then create diffy comparison with name "<name>"` | `POST projects/{id}/diffs` |
-| `Then create diffy screenshot from "<env>" environment` | `POST projects/{id}/screenshots` |
-| `Then compare diffy "<env1>" with "<env2>"` | `POST projects/{id}/compare` |
-| `Then upload folder "<path>" to diffy as "<name>"` | `POST projects/{id}/create-custom-snapshot` (functional test) |
-| `Then wait for diffy comparison to complete` | `GET diffs/{id}` (polling) |
-| `Then wait for diffy screenshots to complete` | `GET snapshots/{id}` (polling) |
-| `Then the diffy comparison should (not) have changes` | `GET diffs/{id}` (`result`, `diffs`) |
-| `Then the diffy comparison should have at most "<n>" percent of pages changed` | `GET diffs/{id}` (`result`) |
-| `Then set the last diffy screenshots as the baseline` | `PUT projects/{id}/set-base-line-set/{screenshotId}` |
-| `Then the diffy project should be reachable` | `GET projects/{id}` |
-
-## Example
+A typical flow: on the main branch, keep the project's baseline up to date; on a pull request, let Diffy compare the baseline with the pull request's environment and fail the job when the result is not what you expect. Export the environment's address as `DIFFY_ENV2_URL` (and `DIFFY_COMMIT_SHA` for a GitHub check).
 
 ```gherkin
-@diffy
-Feature: Visual regression
-  Scenario: Compare two pages across breakpoints
-    Given I am on "/"
-    Then I take screenshots for all breakpoints
-
-    Given I am on "/about-us"
-    Then I take screenshots for all breakpoints
-    Then send screenshots to diffy with name "baseline"
-
-    Given I am on "/"
-    When I resize window to "1200"
-    Then I take screenshot
-    Then send screenshots to diffy with name "feature-branch"
-
-    Then create diffy comparison with name "PR-42"
-    Then wait for diffy comparison to complete
+Given the diffy project is reachable
+Then compare diffy "baseline" with "custom" with name "PR-42"
+And wait for diffy comparison to complete
+And the diffy comparison should have at most "2" percent of pages changed
 ```
 
-Run:
+To test a site Diffy cannot reach, capture it with Playwright instead (`take screenshots for all breakpoints`, `send screenshots to diffy with name "PR-42"`) and use `create diffy comparison` against an earlier set.
 
-```bash
-export DIFFY_API_KEY=your-key
-export DIFFY_PROJECT_ID=30542
-export DIFFY_BREAKPOINTS="640,1200"
-npm test
-```
+Diffy's own examples for several CI and hosting set-ups are in its [automation documentation](https://docs.diffy.website/automation/overview). Name comparisons after the pull request or ticket, and reuse the baseline screenshots instead of capturing production on every run.
 
-## Reference feature files
+## Contract notes
 
-Located in `tests/features/`. All scenarios tagged `@diffy`.
+The Swagger is at https://app.diffy.website/rest (the JSON is `https://app.diffy.website/rest/swagger.json`). It does not describe everything the pack needs; the rest comes from Diffy's open-source clients, [diffy-php](https://github.com/DiffyWebsite/diffy-php) and [diffy-cli](https://github.com/DiffyWebsite/diffy-cli).
 
-| File | Purpose | Extra tag |
-|------|---------|-----------|
-| `01-example-demo.feature` | Canonical example using bundled `/diffy/baseline.html` + `/diffy/changed.html` | `@example` |
-| `02-all-steps.feature`    | Smoke test of every step definition      | `@smoke` + sub-tags |
+| Topic | Source | What the pack does |
+| --- | --- | --- |
+| `POST auth/key`, body `{"key": ...}` | Swagger | Keeps the token of the answer (`token` property, as diffy-php reads it; a plain string is accepted too) for the run, renews it once on a 401. |
+| Screenshot request | Swagger `CreateScreenshot` | Sends `environment` (`production`, `staging`, `development`, `custom`) and, for `custom`, `baseUrl`. The answer is the set id, a number. |
+| Upload | Swagger `CreateCustomUploadedScreenshot` | Multipart `snapshotName`, `functionalTest`, `files[i]`, `urls[i]`, `breakpoints[i]`. Ten images per request, as the CLI does; the rest are appended. |
+| Append images | Swagger `PUT snapshots/{id}`; the CLI uses `POST` | `PUT`, then `POST` when Diffy answers 404 or 405. |
+| Comparison from two sets | Swagger `CreateDiff` | `snapshot1`, `snapshot2`, `name`. The answer is the diff id, a number. |
+| Environment comparison | Swagger `CompareEnvironment`, `CompareCustomEnvironment` | `env1`, `env2` (`prod`, `stage`, `dev`, `baseline`, `custom`), `env1Url` and `env2Url` for custom, basic-auth fields `env1CredsMode`, `env1CredsUser`, `env1CredsPass` (and 2), `commitSha`, `name`. The answer is the diff id, documented as a string; strings are accepted. |
+| Baseline | Swagger `PUT projects/{id}/set-base-line-set/{screenshot_id}` | As documented. |
+| Screenshot states | diffy-php `Screenshot.php` | 0 not started, 1 in progress, 2 completed, 3 completed with the hook run, 4 zip file made. Complete in 2, 3 and 4. |
+| Diff states | diffy-php `Diff.php` | 0 not started, 1 in progress, 2 completed, 3 hook run, 4 zip file made, 5 and 8 screenshots still in progress, 7 completed without a zip. Complete in 2, 3, 4 and 7. Any other state, for example -1 (stopped), is a failure. |
+| Diff result | diffy-cli `diff:get-result` | `result` is the percentage of pages that changed; `diffs[url][breakpoint].percentageChanges` is per page and breakpoint; `diffSharedUrl` is the report. |
+| Error body | diffy-php `Diffy::request` | `{"type": "validation_error", "errors": [...]}` and `{"code", "message"}` are shown in the message. A 403 with `"type": "api_access_disabled"` says the account has no API access. |
+| Rate limits | not documented | A 429 is retried up to three times, waiting for `Retry-After` (at most 60 s). |
 
-The features run in two lanes: against a local mock of the Diffy API
-(`npm test`) and against the real API (`npm run test:live`, which needs
-`DIFFY_API_KEY` and `DIFFY_PROJECT_ID` and prints why it skipped without them).
+Not part of the API surface used here: notifications (chat, email, thresholds), masks, schedules and cookies are project settings, changed in Diffy or with `POST projects/{id}`.
 
-Bundled example pages live in `examples/diffy/baseline.html` and
-`examples/diffy/changed.html` (with a local index at
-`examples/diffy/index.html`). The `changed` page shows deliberate visual
-regressions (palette shift, new badge, added section, pricing change) so
-Diffy has real differences to report.
+### Allow Diffy through your firewall
 
----
+When Diffy captures your site, its workers must be allowed through your CDN or firewall. From Diffy's [Welcome page](https://docs.diffy.website/features/welcome): IPv4 `138.201.56.149`, IPv6 `2a01:4f8:172:1189::2`. Check that the single-IP option is on in the project's settings (Advanced, Optimization). This does not apply to screenshots you capture with Playwright and send.
+
+## Reference features
+
+| File | Purpose |
+| --- | --- |
+| `01-example-demo.feature` | The canonical flow on the bundled pages: a changed page has changes, the same page twice has none, a comparison uses the last two sets. |
+| `02-all-steps.feature` | Every step at least once, including the environment steps. |
+
+The scenarios run in both lanes. Tags control what the live lane skips: `project-environments` (the project's production and staging URLs), `remote-url` (two reachable addresses), `sets-baseline` (replaces the project's baseline). The pages are in `examples/diffy/`; the `changed` page differs on purpose.
 
 ## Diffy links
 
-### Product
-- Home — https://diffy.website
-- Pricing — https://diffy.website/pricing
-- Free-tier sign-up — https://app.diffy.website/#/register
-- Sign-in — https://app.diffy.website
-- API keys page — https://app.diffy.website/#/keys
-
-### Documentation home
-- Docs — https://docs.diffy.website
-- Welcome / IP allow-list — https://docs.diffy.website/features/welcome
-- Legacy docs (outdated, kept for reference) — https://diffy.website/documentation
-
-### Features
-- Playwright integration — https://docs.diffy.website/features/playwright-integration
-- Figma comparison — https://docs.diffy.website/features/figma
-- Mask and exclude regions — https://docs.diffy.website/features/mask-and-exclude
-- JavaScript snippets — https://docs.diffy.website/features/javascript-snippets
-- HTTP headers — https://docs.diffy.website/features/http-headers
-- Cookies — https://docs.diffy.website/features/cookies
-- CSS overrides — https://docs.diffy.website/features/css-overrides
-- Mock content — https://docs.diffy.website/features/mock-content
-- Tags — https://docs.diffy.website/features/tags
-- Project-from-YAML — https://docs.diffy.website/features/configure-project-from-yaml-file
-- Zapier / Jira / Trello / Basecamp — https://docs.diffy.website/features/zapier-integration-jira-trello-basecamp-integrations
-
-### Dealing with dynamic elements
-- Overview — https://docs.diffy.website/features/dealing-with-dynamic-elements
-- Freeze carousels / sliders — https://docs.diffy.website/features/dealing-with-dynamic-elements/freeze-carousels-sliders
-- Cookie-policy popups — https://docs.diffy.website/features/dealing-with-dynamic-elements/cookies-policy-popups
-- Misc JavaScript snippets — https://docs.diffy.website/features/dealing-with-dynamic-elements/misc-javascript-snippets
-
-### Bypass firewalls / protections
-- Overview (Cloudfront / Akamai / Incapsula) — https://docs.diffy.website/features/bypass-protection-cloudfront-akamai-incapsula
-- Akamai — https://docs.diffy.website/features/bypass-protection-cloudfront-akamai-incapsula/bypass-akamai-protection
-- Imperva / Incapsula — https://docs.diffy.website/features/bypass-protection-cloudfront-akamai-incapsula/bypass-imperva-incapsula-protection
-
-### Local development
-- Overview — https://docs.diffy.website/features/local-development
-- DDEV add-on — https://docs.diffy.website/features/local-development/ddev-add-on
-- Lando integration — https://docs.diffy.website/features/local-development/lando-integration
-- Docksal — https://docs.diffy.website/features/local-development/docksal
-- Standalone Docker container — https://docs.diffy.website/features/local-development/standalone-docker-container
-- ngrok — https://docs.diffy.website/features/local-development/ngrok
-
-### CI / CD automation
-- Automation overview — https://docs.diffy.website/automation/overview
-- GitHub + Pantheon + CircleCI — https://docs.diffy.website/automation/github-pantheon-circleci
-- GitHub + Pantheon + GitHub Actions — https://docs.diffy.website/automation/github-pantheon-github-actions
-- GitHub + Tugboat — https://docs.diffy.website/automation/github-tugboat
-- Platform.sh + GitHub Actions — https://docs.diffy.website/automation/platformsh-github-action
-
-### Tutorials
-- Comparison review — https://docs.diffy.website/tutorials/comparison-review
-
-### Source code / packages
-- diffy-cli (PHP, packaged as `diffy.phar`) — https://github.com/DiffyWebsite/diffy-cli
-- diffy-cli releases — https://github.com/DiffyWebsite/diffy-cli/releases
-- DiffyWebsite org — https://github.com/DiffyWebsite
-
-### Diffy REST API reference (endpoints used by these steps)
-
-Base URL: `https://app.diffy.website/api/` (override with `DIFFY_API_BASE_URL`).
-
-| Method | Path | Purpose |
-|--------|------|---------|
-| `POST` | `auth/key` | Exchange API key for a short-lived bearer token |
-| `POST` | `projects` | Create a project |
-| `POST` | `projects/{id}` | Update a project |
-| `GET`  | `projects/{id}` | Read project settings |
-| `GET`  | `projects` | List projects |
-| `POST` | `projects/{id}/screenshots` | Trigger server-side screenshot run |
-| `GET`  | `projects/{id}/screenshots` | List snapshots |
-| `POST` | `projects/{id}/create-custom-snapshot` | Upload custom PNGs (multipart) |
-| `PUT`  | `projects/{id}/set-base-line-set/{screenshotId}` | Promote snapshot to baseline |
-| `POST` | `projects/{id}/diffs` | Create a diff between two snapshot ids |
-| `POST` | `projects/{id}/compare` | Server-side env-to-env compare |
-| `GET`  | `projects/{id}/diffs?page=N` | List diffs |
-| `GET`  | `diffs/{id}` | Diff status + result |
-| `GET`  | `snapshots/{id}` | Snapshot detail |
-
-All authenticated calls carry `Authorization: Bearer <token>`. The token comes
-from `POST auth/key` with `{"key": "<DIFFY_API_KEY>"}` and is refreshed lazily
-inside `diffy.steps.js`.
-
-### Diffy-side IPs (allow-list in CDN / firewall)
-
-From [Welcome](https://docs.diffy.website/features/welcome):
-
-- IPv4: `138.201.56.149`
-- IPv6: `2a01:4f8:172:1189::2`
-
-### Support / contact
-- Email — info@diffy.website
-- Issue trackers: file bugs against the matching repo above (cli, behat, php, etc.)
+- Product: https://diffy.website, pricing https://diffy.website/pricing, sign in https://app.diffy.website, API keys https://app.diffy.website/#/keys
+- API reference (Swagger): https://app.diffy.website/rest
+- Documentation: https://docs.diffy.website
+- Features: [Playwright integration](https://docs.diffy.website/features/playwright-integration), [Mask and exclude](https://docs.diffy.website/features/mask-and-exclude), [JavaScript snippets](https://docs.diffy.website/features/javascript-snippets), [HTTP headers](https://docs.diffy.website/features/http-headers), [Cookies](https://docs.diffy.website/features/cookies), [CSS overrides](https://docs.diffy.website/features/css-overrides), [Mock content](https://docs.diffy.website/features/mock-content), [Dealing with dynamic elements](https://docs.diffy.website/features/dealing-with-dynamic-elements), [Tags](https://docs.diffy.website/features/tags), [Project from a YAML file](https://docs.diffy.website/features/configure-project-from-yaml-file)
+- Firewalls and bot protection: [bypass protection](https://docs.diffy.website/features/bypass-protection-cloudfront-akamai-incapsula)
+- Local development: [overview](https://docs.diffy.website/features/local-development), [ngrok](https://docs.diffy.website/features/local-development/ngrok)
+- Automation: [overview](https://docs.diffy.website/automation/overview), [GitLab](https://docs.diffy.website/automation/gitlab)
+- Tutorial: [Comparison review](https://docs.diffy.website/tutorials/comparison-review)
+- Source: [diffy-cli](https://github.com/DiffyWebsite/diffy-cli), [diffy-php](https://github.com/DiffyWebsite/diffy-php)

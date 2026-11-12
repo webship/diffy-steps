@@ -31,6 +31,12 @@ jobs:
       - name: Run cucumber dry-run (no ambiguous/undefined steps)
         run: npm run test:dry
 
+      - name: Check the docblock examples and the features against the steps
+        run: npm run test:examples
+
+      - name: Check the step documentation is up to date
+        run: npm run docs:check
+
       - name: Check the mock Diffy API against the documented contract
         run: npm run test:unit
 

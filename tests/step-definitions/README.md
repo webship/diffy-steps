@@ -30,8 +30,10 @@ Install the plugin alongside webship-js:
 npm install --save-dev webship-js @webship-js/diffy-steps
 ```
 
-`diffy.steps.js` pulls in `axios` (a direct dependency of this package) plus
-Node 20+ built-ins (`FormData`, `Blob`, `fs`, `http`). Nothing else to install.
+The pack has no dependency of its own: it uses the Node 20+ built-ins
+(`fetch`, `FormData`, `Blob`, `fs`). It ships three files, `diffy.steps.js`
+(the steps), `diffy-client.js` (the API client) and `diffy-images.js` (image
+helpers); the `require` path in `cucumber.js` below loads them all.
 
 ### 1. Edit `cucumber.js` — load the Diffy step definitions
 
@@ -166,15 +168,19 @@ npm uninstall @webship-js/diffy-steps
 
 | Variable                | Purpose                                                      | Default                              |
 | ----------------------- | ------------------------------------------------------------ | ------------------------------------ |
-| `DIFFY_API_KEY`         | Diffy API key ([keys page](https://app.diffy.website/#/keys)) | *required*                           |
-| `DIFFY_PROJECT_ID`      | Diffy project id                                              | *required*                           |
-| `DIFFY_BREAKPOINTS`     | Comma list of breakpoints, e.g. `"640,1200"`                  | `1200`                               |
-| `DIFFY_WINDOW_HEIGHT`   | Default viewport height                                       | `2000`                               |
-| `DIFFY_SCREENSHOTS_DIR` | On-disk copy of screenshots (debugging)                       | *unset*                              |
-| `DIFFY_API_BASE_URL`    | Override API base URL (useful for mocking)                    | `https://app.diffy.website/api/`     |
-| `DIFFY_MAX_WAIT`        | Seconds to poll `diffs/{id}` before failing                   | `1200`                               |
-| `DIFFY_ENV1_URL`        | Custom env1 URL for `compare diffy "custom" with ...`         | *unset*                              |
-| `DIFFY_ENV2_URL`        | Custom env2 URL for `compare diffy ... with "custom"`         | *unset*                              |
+| `DIFFY_API_KEY` | Diffy API key ([keys page](https://app.diffy.website/#/keys)); the account needs API access | *required* |
+| `DIFFY_PROJECT_ID` | Diffy project id | *required* |
+| `DIFFY_BREAKPOINTS` | Comma list of breakpoints, e.g. `"640,1200"` | `1200` |
+| `DIFFY_WINDOW_HEIGHT` | Viewport height in pixels | `2000` |
+| `DIFFY_SCREENSHOTS_DIR` | On-disk copy of the captured screenshots (debugging); only files the pack wrote are removed after an upload | *unset* |
+| `DIFFY_API_BASE_URL` | Override the API base URL | `https://app.diffy.website/api/` |
+| `DIFFY_MAX_WAIT` | Seconds a wait step polls before failing | `1200` |
+| `DIFFY_POLL_INTERVAL` | Seconds between polls | `10` |
+| `DIFFY_REQUEST_TIMEOUT` | Seconds one API call may take | `120` |
+| `DIFFY_FUNCTIONAL_TEST` | Mark uploaded screenshots as functional-test uploads, so their pages need not be in the project URL list. `false` to require the pages in the project | `true` |
+| `DIFFY_COMMIT_SHA` | Commit SHA sent with environment comparisons (GitHub check) | *unset* |
+| `DIFFY_ENV1_URL`, `DIFFY_ENV2_URL` | Address of a `custom` environment (`compare diffy "custom" with ...`; `DIFFY_ENV1_URL` also for `create diffy screenshot from "custom" environment`) | *unset* |
+| `DIFFY_ENV1_USER`, `DIFFY_ENV1_PASS`, `DIFFY_ENV2_USER`, `DIFFY_ENV2_PASS` | Basic-authentication login of a `custom` environment | *unset* |
 
 ## Steps
 

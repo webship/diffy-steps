@@ -4,7 +4,8 @@ Feature: Diffy — all step definitions smoke test
   (npm test) and against the real API (npm run test:live). The scenarios
   tagged project-environments need a Diffy project whose production and
   staging URLs Diffy can reach; the live lane skips them unless
-  DIFFY_LIVE_PROJECT_ENVIRONMENTS=1.
+  DIFFY_LIVE_PROJECT_ENVIRONMENTS=1. The ones tagged remote-url need two
+  addresses Diffy can reach, in DIFFY_ENV1_URL and DIFFY_ENV2_URL.
 
   @diffy @smoke
   Scenario: Resize, take screenshot, breakpoints loop, send
@@ -37,7 +38,7 @@ Feature: Diffy — all step definitions smoke test
 
   @diffy @smoke @env-compare @project-environments
   Scenario: Server-side environment compare
-    Then compare diffy "prod" with "stage"
+    Then compare diffy "prod" with "stage" with name "release-compare"
     Then wait for diffy comparison to complete
 
   @diffy @smoke @env-screenshot @project-environments
@@ -45,6 +46,18 @@ Feature: Diffy — all step definitions smoke test
     Then create diffy screenshot from "production" environment
     Then create diffy screenshot from "staging" environment
     Then create diffy comparison with name "env-pair"
+    Then wait for diffy comparison to complete
+
+  @diffy @smoke @env-custom @remote-url
+  Scenario: Custom environments, at the address of the variables and at an address in the step
+    Then create diffy screenshot from "custom" environment
+    Then create diffy screenshot from the custom environment "https://www.example.org"
+    Then create diffy comparison with name "custom-pair"
+    Then wait for diffy comparison to complete
+
+  @diffy @smoke @env-custom @remote-url
+  Scenario: Compare two custom environments
+    Then compare diffy "custom" with "custom" with name "custom-vs-custom"
     Then wait for diffy comparison to complete
 
   @diffy @smoke @folder-upload

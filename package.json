@@ -5,6 +5,8 @@
   "main": "tests/step-definitions/diffy.steps.js",
   "files": [
     "tests/step-definitions/diffy.steps.js",
+    "tests/step-definitions/diffy-client.js",
+    "tests/step-definitions/diffy-images.js",
     "README.md",
     "LICENSE"
   ],
@@ -46,9 +48,6 @@
   "homepage": "https://github.com/webship/diffy-steps#readme",
   "publishConfig": {
     "access": "public"
-  },
-  "dependencies": {
-    "axios": "~1"
   },
   "peerDependencies": {
     "webship-js": "^2.0.4"

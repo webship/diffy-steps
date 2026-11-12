@@ -6,153 +6,139 @@
 // Plugin for webship-js (https://www.npmjs.com/package/webship-js): relies on
 // the World it installs (this.page, this.parameters) and adds nothing to it.
 //
-// Talks directly to Diffy REST API (https://app.diffy.website/api/).
+// Talks to the Diffy REST API (https://app.diffy.website/api/, documented at
+// https://app.diffy.website/rest) through diffy-client.js.
 //
-// Configuration: resolved per-scenario with this priority:
-//   1. process.env.DIFFY_*            (CI / shell — highest)
-//   2. cucumber.js worldParameters.diffy.*   (project-level defaults)
+// Configuration, resolved for each scenario in this order:
+//   1. process.env.DIFFY_*                    (shell or CI: highest)
+//   2. cucumber.js worldParameters.diffy.*    (project defaults)
 //   3. built-in defaults
 //
-// Supported env vars / worldParameters keys:
-//   DIFFY_API_KEY         apiKey          — https://app.diffy.website/#/keys
-//   DIFFY_PROJECT_ID      projectId       — Diffy project id
-//   DIFFY_BREAKPOINTS     breakpoints     — comma list, e.g. "640,1200"
-//   DIFFY_WINDOW_HEIGHT   windowHeight    — default 2000
-//   DIFFY_SCREENSHOTS_DIR screenshotsDir  — on-disk copy of screenshots
-//   DIFFY_API_BASE_URL    baseUrl         — default app.diffy.website
-//   DIFFY_MAX_WAIT        maxWait         — diff polling timeout (s), default 1200
-//   DIFFY_ENV1_URL        env1Url         — custom URL for "compare diffy"
-//   DIFFY_ENV2_URL        env2Url         — custom URL for "compare diffy"
+// Variables and worldParameters keys:
+//   DIFFY_API_KEY          apiKey          — https://app.diffy.website/#/keys
+//   DIFFY_PROJECT_ID       projectId       — Diffy project id
+//   DIFFY_BREAKPOINTS      breakpoints     — comma list, e.g. "640,1200"
+//   DIFFY_WINDOW_HEIGHT    windowHeight    — viewport height, default 2000
+//   DIFFY_SCREENSHOTS_DIR  screenshotsDir  — on-disk copy of captured screenshots
+//   DIFFY_API_BASE_URL     baseUrl         — default https://app.diffy.website/api/
+//   DIFFY_MAX_WAIT         maxWait         — seconds a wait step polls, default 1200
+//   DIFFY_POLL_INTERVAL    pollInterval    — seconds between polls, default 10
+//   DIFFY_REQUEST_TIMEOUT  requestTimeout  — seconds one API call may take, default 120
+//   DIFFY_FUNCTIONAL_TEST  functionalTest  — default true: uploaded pages need not be in the project URL list
+//   DIFFY_COMMIT_SHA       commitSha       — sent with environment comparisons (GitHub check)
+//   DIFFY_ENV1_URL / DIFFY_ENV2_URL                 env1Url / env2Url
+//   DIFFY_ENV1_USER / DIFFY_ENV1_PASS (and ENV2)    basic-auth login of a custom environment
 // ---------------------------------------------------------------------------
 
-const { Given, When, Then, Before } = require('@cucumber/cucumber');
-const axios = require('axios');
+const { When, Then, Before } = require('@cucumber/cucumber');
 const fs = require('fs');
 const path = require('path');
+const { friendly, smartSettle } = require('webship-js/tests/step-definitions/webship');
+const { DiffyClient, resolveConfig, summarize } = require('./diffy-client');
+const { collectFolderImages } = require('./diffy-images');
 
-const WINDOW_PADDING = 8;
-
-function pick(envVal, paramVal, fallback) {
-  if (envVal !== undefined && envVal !== '') return envVal;
-  if (paramVal !== undefined && paramVal !== '' && paramVal !== null) return paramVal;
-  return fallback;
-}
-
-function resolveConfig(parameters) {
-  const p = (parameters && parameters.diffy) || {};
-  const breakpointsRaw = pick(process.env.DIFFY_BREAKPOINTS, p.breakpoints, '1200');
-  return {
-    apiKey: pick(process.env.DIFFY_API_KEY, p.apiKey, ''),
-    projectId: parseInt(pick(process.env.DIFFY_PROJECT_ID, p.projectId, '0'), 10),
-    breakpoints: String(breakpointsRaw)
-      .split(',')
-      .map(s => parseInt(String(s).trim(), 10))
-      .filter(n => !Number.isNaN(n)),
-    windowHeight: parseInt(pick(process.env.DIFFY_WINDOW_HEIGHT, p.windowHeight, '2000'), 10),
-    screenshotsDir: pick(process.env.DIFFY_SCREENSHOTS_DIR, p.screenshotsDir, ''),
-    baseUrl: pick(process.env.DIFFY_API_BASE_URL, p.baseUrl, 'https://app.diffy.website/api/'),
-    maxWait: parseInt(pick(process.env.DIFFY_MAX_WAIT, p.maxWait, '1200'), 10),
-    env1Url: pick(process.env.DIFFY_ENV1_URL, p.env1Url, ''),
-    env2Url: pick(process.env.DIFFY_ENV2_URL, p.env2Url, ''),
-  };
-}
-
-let diffyToken = null;
-
-async function refreshToken(cfg) {
-  if (!cfg.apiKey) {
-    throw new Error('Diffy API key missing. Set DIFFY_API_KEY env or worldParameters.diffy.apiKey.');
-  }
-  const res = await axios.post(
-    cfg.baseUrl + 'auth/key',
-    { key: cfg.apiKey },
-    { headers: { Accept: 'application/json', 'Content-Type': 'application/json' } }
-  );
-  if (!res.data || !res.data.token) {
-    throw new Error('Diffy auth/key did not return a token.');
-  }
-  diffyToken = res.data.token;
-  return diffyToken;
-}
-
-async function diffyRequest(cfg, method, uri, opts = {}) {
-  if (!diffyToken) await refreshToken(cfg);
-  const headers = Object.assign(
-    { Authorization: 'Bearer ' + diffyToken },
-    opts.headers || {}
-  );
-  const reqCfg = { method, url: cfg.baseUrl + uri, headers };
-  if (opts.json !== undefined) {
-    reqCfg.data = opts.json;
-    headers['Content-Type'] = 'application/json';
-    headers['Accept'] = 'application/json';
-  }
-  if (opts.form !== undefined) {
-    reqCfg.data = opts.form;
-    headers['Accept'] = 'application/json';
-  }
-  let res;
-  try {
-    res = await axios.request(reqCfg);
-  } catch (e) {
-    const body = e.response && e.response.data;
-    const bodyStr = typeof body === 'string' ? body : JSON.stringify(body);
-    const err = new Error(`Diffy API ${method} ${uri} failed: ${e.response?.status} ${bodyStr || e.message}`);
-    err.cause = e;
-    throw err;
-  }
-  return res.data;
-}
-
-function ensureProjectId(cfg) {
-  if (!cfg.projectId) {
-    throw new Error('Diffy projectId missing. Set DIFFY_PROJECT_ID env or worldParameters.diffy.projectId.');
-  }
-}
-
+/**
+ * The path of the current page as Diffy files it: relative to the launch URL.
+ *
+ * @param {import('playwright').Page} page
+ * @param {string} launchUrl
+ * @returns {string}
+ */
 function currentPath(page, launchUrl) {
   try {
-    const current = page.url();
-    if (launchUrl && current.startsWith(launchUrl)) {
-      return current.slice(launchUrl.length) || '/';
+    const current = new URL(page.url());
+    const base = launchUrl ? new URL(launchUrl) : null;
+    if (base && current.origin === base.origin) {
+      const prefix = base.pathname.replace(/\/+$/, '');
+      const rest = current.pathname.startsWith(prefix) ? current.pathname.slice(prefix.length) : current.pathname;
+      return (rest.startsWith('/') ? rest : `/${rest}`) + current.search;
     }
-    const u = new URL(current);
-    return u.pathname + u.search;
-  } catch {
+    return current.pathname + current.search;
+  } catch (e) {
     return '/';
   }
 }
 
-async function takeOneScreenshot(world) {
+/**
+ * The width of the browser viewport, which is the width of a full-page
+ * screenshot and so the breakpoint it is filed under.
+ *
+ * @param {import('playwright').Page} page
+ * @returns {Promise<number>}
+ */
+async function viewportWidth(page) {
+  const size = page.viewportSize();
+  return size ? size.width : page.evaluate(() => window.innerWidth);
+}
+
+/**
+ * Capture the current page as a full-page PNG and keep it for the next upload.
+ * The page is settled first, CSS animations are stopped and the text caret is
+ * hidden, so two captures of an unchanged page are the same image. Capturing
+ * the same page at the same width again replaces the earlier capture.
+ *
+ * @param {object} world
+ * @returns {Promise<void>}
+ */
+async function capture(world) {
   const cfg = world.diffyConfig;
   const page = world.page;
-  const viewport = page.viewportSize() || { width: cfg.breakpoints[0] || 1200 };
-  const breakpoint = viewport.width - WINDOW_PADDING;
-  const buffer = await page.screenshot({ fullPage: true });
+  if (!page || page.url() === 'about:blank') {
+    throw friendly({
+      message: 'There is no page to take a screenshot of.',
+      hint: 'Open a page first, for example: Given I am on "/".',
+    });
+  }
+  await smartSettle(page, (world.minWaitTime && world.minWaitTime.page) || 3000);
+  const breakpoint = await viewportWidth(page);
+  const buffer = await page.screenshot({ fullPage: true, type: 'png', animations: 'disabled', caret: 'hide' });
   const url = currentPath(page, world.launchUrl);
 
   if (cfg.screenshotsDir) {
-    if (!fs.existsSync(cfg.screenshotsDir)) {
-      fs.mkdirSync(cfg.screenshotsDir, { recursive: true });
-    }
-    const safe = encodeURIComponent(url);
-    const filename = `${Date.now()}__${safe}__${breakpoint}.png`;
-    fs.writeFileSync(path.join(cfg.screenshotsDir, filename), buffer);
+    fs.mkdirSync(cfg.screenshotsDir, { recursive: true });
+    const file = path.join(cfg.screenshotsDir, `${Date.now()}__${encodeURIComponent(url)}__${breakpoint}.png`);
+    fs.writeFileSync(file, buffer);
+    world.diffyFiles.push(file);
   }
 
-  world.diffyScreenshots = world.diffyScreenshots || [];
-  world.diffyScreenshots.push({ buffer, url, breakpoint });
+  const shot = { buffer, url, breakpoint, filename: `${encodeURIComponent(url)}__${breakpoint}.png`, contentType: 'image/png' };
+  const same = world.diffyScreenshots.findIndex((s) => s.url === url && s.breakpoint === breakpoint);
+  if (same === -1) world.diffyScreenshots.push(shot);
+  else world.diffyScreenshots[same] = shot;
+}
+
+/**
+ * The id of the last screenshot set created in this scenario, or an error that
+ * tells the tester which step to put first.
+ *
+ * @param {object} world
+ * @returns {number[]} The ids, oldest first.
+ */
+function screenshotIds(world, needed) {
+  const ids = world.diffyCreatedScreenshotIds;
+  if (ids.length < needed) {
+    throw friendly({
+      message: needed === 1
+        ? 'No Diffy screenshot set exists yet in this scenario.'
+        : `A comparison needs two Diffy screenshot sets, and this scenario has ${ids.length}.`,
+      hint: 'Create them first with "send screenshots to diffy with name ...", "upload folder ... to diffy as ..." or "create diffy screenshot from ... environment".',
+    });
+  }
+  return ids;
 }
 
 Before(async function () {
   this.diffyConfig = resolveConfig(this.parameters);
+  this.diffy = new DiffyClient(this.diffyConfig);
   this.diffyScreenshots = [];
-  this.diffyCreatedScreenshotIds = this.diffyCreatedScreenshotIds || [];
-  this.diffyCreatedDiffIds = this.diffyCreatedDiffIds || [];
+  this.diffyFiles = [];
+  this.diffyCreatedScreenshotIds = [];
+  this.diffyCreatedDiffIds = [];
 });
 
 /**
- * Resize browser viewport to a breakpoint width (plus Diffy window padding).
+ * Resize the browser viewport to a breakpoint width, so a page is laid out at
+ * that width. The height is DIFFY_WINDOW_HEIGHT.
  *
  * Example #1: When I resize window to "1200"
  * Example #2: When we resize window to "640"
@@ -164,16 +150,23 @@ Before(async function () {
  * Example #8: When we resize window to "375"
  *
  */
-When(/^(?:I |we )?resize window to "([^"]*)"$/, async function (breakpoint) {
-  const cfg = this.diffyConfig;
-  const width = parseInt(breakpoint, 10) + WINDOW_PADDING;
-  await this.page.setViewportSize({ width, height: cfg.windowHeight });
+When(/^(I |we )*resize window to "([^"]*)"$/, async function (pronounCase, breakpoint) {
+  const width = parseInt(breakpoint, 10);
+  if (!/^\d+$/.test(breakpoint.trim()) || width < 200) {
+    throw friendly({
+      message: `"${breakpoint}" is not a breakpoint width.`,
+      hint: 'Use a width in pixels, for example: When I resize window to "1200".',
+    });
+  }
+  await this.page.setViewportSize({ width, height: this.diffyConfig.windowHeight });
 });
 
 /**
- * Capture a full-page screenshot at current viewport.
- * Held in-memory (and optionally written to DIFFY_SCREENSHOTS_DIR) until
- * "send screenshots to diffy with name" uploads the batch.
+ * Capture a full-page screenshot of the current page at the current viewport
+ * width. The page is settled first and animations are stopped. The image is
+ * kept in memory (and in DIFFY_SCREENSHOTS_DIR when set) until "send
+ * screenshots to diffy with name" uploads the batch. Taking the same page at
+ * the same width again replaces the earlier image.
  *
  * Example #1: Then I take screenshot
  * Example #2: Then we take screenshot
@@ -184,13 +177,13 @@ When(/^(?:I |we )?resize window to "([^"]*)"$/, async function (breakpoint) {
  * Example #7: And take screenshot
  *
  */
-Then(/^(?:I |we )?take screenshot$/, async function () {
-  await takeOneScreenshot(this);
+Then(/^(I |we )*take screenshot$/, async function (pronounCase) {
+  await capture(this);
 });
 
 /**
- * Resize to each configured breakpoint and capture a screenshot per breakpoint.
- * Breakpoints come from DIFFY_BREAKPOINTS env or worldParameters.diffy.breakpoints.
+ * Resize to each configured breakpoint and capture the current page at each.
+ * The breakpoints come from DIFFY_BREAKPOINTS or worldParameters.diffy.breakpoints.
  *
  * Example #1: Then I take screenshots for all breakpoints
  * Example #2: Then we take screenshots for all breakpoints
@@ -200,23 +193,26 @@ Then(/^(?:I |we )?take screenshot$/, async function () {
  * Example #6: And take screenshots for all breakpoints
  *
  */
-Then(/^(?:I |we )?take screenshots for all breakpoints$/, async function () {
+Then(/^(I |we )*take screenshots for all breakpoints$/, async function (pronounCase) {
   const cfg = this.diffyConfig;
   if (!cfg.breakpoints.length) {
-    throw new Error('Diffy breakpoints empty. Set DIFFY_BREAKPOINTS or worldParameters.diffy.breakpoints.');
-  }
-  for (const bp of cfg.breakpoints) {
-    await this.page.setViewportSize({
-      width: bp + WINDOW_PADDING,
-      height: cfg.windowHeight,
+    throw friendly({
+      message: 'No Diffy breakpoints are configured.',
+      hint: 'Export DIFFY_BREAKPOINTS, for example "640,1200", or set diffy.breakpoints in cucumber.js.',
     });
-    await takeOneScreenshot(this);
+  }
+  for (const width of cfg.breakpoints) {
+    await this.page.setViewportSize({ width, height: cfg.windowHeight });
+    await capture(this);
   }
 });
 
 /**
- * Upload all captured screenshots to Diffy as a named custom snapshot.
- * Clears in-memory buffer + on-disk screenshotsDir on success.
+ * Upload the captured screenshots to Diffy as one named screenshot set. The
+ * set is marked as a functional-test upload, so the pages need not be in the
+ * project URL list (DIFFY_FUNCTIONAL_TEST=false turns that off). More than ten
+ * images are sent in batches. On success the captured screenshots, and the
+ * files this pack wrote to DIFFY_SCREENSHOTS_DIR, are cleared.
  *
  * Example #1: Then send screenshots to diffy with name "baseline"
  * Example #2: Then send screenshots to diffy with name "changed"
@@ -227,41 +223,21 @@ Then(/^(?:I |we )?take screenshots for all breakpoints$/, async function () {
  *
  */
 Then(/^(I |we )*send screenshots to diffy with name "([^"]*)"$/, async function (pronounCase, snapshotName) {
-  const cfg = this.diffyConfig;
-  ensureProjectId(cfg);
-  const shots = this.diffyScreenshots || [];
-  if (!shots.length) {
-    throw new Error('No screenshots captured. Call "I take screenshot(s)" first.');
+  if (!this.diffyScreenshots.length) {
+    throw friendly({
+      message: 'There are no captured screenshots to send.',
+      hint: 'Take some first: "I take screenshot" or "I take screenshots for all breakpoints".',
+    });
   }
-
-  const form = new FormData();
-  form.append('snapshotName', snapshotName);
-  shots.forEach((s, i) => {
-    form.append(`files[${i}]`, new Blob([s.buffer], { type: 'image/png' }), `screenshot-${i}.png`);
-    form.append(`urls[${i}]`, s.url);
-    form.append(`breakpoints[${i}]`, String(s.breakpoint));
-  });
-
-  const data = await diffyRequest(
-    cfg,
-    'POST',
-    `projects/${cfg.projectId}/create-custom-snapshot`,
-    { form }
-  );
-
-  const screenshotId = typeof data === 'object' ? (data.id || data.snapshotId || data) : data;
-  this.diffyCreatedScreenshotIds.push(screenshotId);
-
-  if (cfg.screenshotsDir && fs.existsSync(cfg.screenshotsDir)) {
-    for (const f of fs.readdirSync(cfg.screenshotsDir)) {
-      if (f.endsWith('.png')) fs.unlinkSync(path.join(cfg.screenshotsDir, f));
-    }
-  }
+  const id = await this.diffy.uploadSnapshot(snapshotName, this.diffyScreenshots, { functionalTest: this.diffyConfig.functionalTest });
+  this.diffyCreatedScreenshotIds.push(id);
+  for (const file of this.diffyFiles) fs.rmSync(file, { force: true });
+  this.diffyFiles = [];
   this.diffyScreenshots = [];
 });
 
 /**
- * Create a Diffy comparison (Diff) from the last two uploaded snapshots.
+ * Compare the last two screenshot sets of this scenario in Diffy.
  *
  * Example #1: Then create diffy comparison
  * Example #2: And create diffy comparison
@@ -273,21 +249,13 @@ Then(/^(I |we )*send screenshots to diffy with name "([^"]*)"$/, async function 
  *
  */
 Then(/^(I |we )*create diffy comparison$/, async function (pronounCase) {
-  const cfg = this.diffyConfig;
-  ensureProjectId(cfg);
-  const ids = this.diffyCreatedScreenshotIds || [];
-  if (ids.length < 2) {
-    throw new Error('Need at least two uploaded snapshots before creating a Diff.');
-  }
-  const data = await diffyRequest(cfg, 'POST', `projects/${cfg.projectId}/diffs`, {
-    json: { snapshot1: ids[0], snapshot2: ids[1], name: '' },
-  });
-  const diffId = typeof data === 'object' ? (data.id || data.diffId || data) : data;
-  this.diffyCreatedDiffIds.push(diffId);
+  const ids = screenshotIds(this, 2);
+  this.diffyCreatedDiffIds.push(await this.diffy.createDiff(ids[ids.length - 2], ids[ids.length - 1]));
 });
 
 /**
- * Create a named Diffy comparison from the last two uploaded snapshots.
+ * Compare the last two screenshot sets of this scenario in Diffy and give the
+ * comparison a name, which Diffy shows in its list and in notifications.
  *
  * Example #1: Then create diffy comparison with name "release-2.0"
  * Example #2: Then create diffy comparison with name "nightly"
@@ -298,22 +266,14 @@ Then(/^(I |we )*create diffy comparison$/, async function (pronounCase) {
  *
  */
 Then(/^(I |we )*create diffy comparison with name "([^"]*)"$/, async function (pronounCase, name) {
-  const cfg = this.diffyConfig;
-  ensureProjectId(cfg);
-  const ids = this.diffyCreatedScreenshotIds || [];
-  if (ids.length < 2) {
-    throw new Error('Need at least two uploaded snapshots before creating a Diff.');
-  }
-  const data = await diffyRequest(cfg, 'POST', `projects/${cfg.projectId}/diffs`, {
-    json: { snapshot1: ids[0], snapshot2: ids[1], name },
-  });
-  const diffId = typeof data === 'object' ? (data.id || data.diffId || data) : data;
-  this.diffyCreatedDiffIds.push(diffId);
+  const ids = screenshotIds(this, 2);
+  this.diffyCreatedDiffIds.push(await this.diffy.createDiff(ids[ids.length - 2], ids[ids.length - 1], name));
 });
 
 /**
- * Ask Diffy to capture a snapshot remotely from a named environment on the project.
- * Accepts short (prod/stage/dev) or long (production/staging/development) forms, plus "custom".
+ * Ask Diffy to capture the project's pages from one of the project's
+ * environments. Accepts short (prod, stage, dev) or long (production, staging,
+ * development) names, and "custom", which captures DIFFY_ENV1_URL.
  *
  * Example #1: Then create diffy screenshot from "production" environment
  * Example #2: Then create diffy screenshot from "prod" environment
@@ -325,59 +285,64 @@ Then(/^(I |we )*create diffy comparison with name "([^"]*)"$/, async function (p
  *
  */
 Then(/^(I |we )*create diffy screenshot from "([^"]*)" environment$/, async function (pronounCase, environment) {
-  const cfg = this.diffyConfig;
-  ensureProjectId(cfg);
-  const map = { prod: 'production', stage: 'staging', dev: 'development' };
-  const env = map[environment] || environment;
-  const allowed = ['production', 'staging', 'development', 'custom'];
-  if (!allowed.includes(env)) {
-    throw new Error(`Invalid Diffy environment "${environment}". Expected one of ${allowed.join(', ')}.`);
-  }
-  const data = await diffyRequest(
-    cfg,
-    'POST',
-    `projects/${cfg.projectId}/screenshots`,
-    { json: { environment: env } }
-  );
-  const screenshotId = typeof data === 'object' ? (data.id || data.snapshotId || data) : data;
-  this.diffyCreatedScreenshotIds.push(screenshotId);
+  const id = await this.diffy.createScreenshot(environment, this.diffyConfig.env1Url);
+  this.diffyCreatedScreenshotIds.push(id);
 });
 
 /**
- * Kick off a Diffy comparison between two project environments.
- * Uses DIFFY_ENV1_URL / DIFFY_ENV2_URL when either side is "custom".
+ * Ask Diffy to capture the project's pages from a site at an address you give,
+ * the custom environment. The site must be reachable from Diffy.
+ *
+ * Example #1: Then create diffy screenshot from the custom environment "https://stage.example.org"
+ * Example #2: And create diffy screenshot from the custom environment "https://www.un.org"
+ * Example #3: Then I create diffy screenshot from the custom environment "https://pr-42.example.org"
+ * Example #4: Then we create diffy screenshot from the custom environment "https://example.org"
+ * Example #5: But I create diffy screenshot from the custom environment "https://example.net"
+ *
+ */
+Then(/^(I |we )*create diffy screenshot from the custom environment "([^"]*)"$/, async function (pronounCase, url) {
+  const id = await this.diffy.createScreenshot('custom', url);
+  this.diffyCreatedScreenshotIds.push(id);
+});
+
+/**
+ * Let Diffy capture two environments of the project and compare them. The
+ * environments are prod, stage, dev, baseline and custom (long names work as
+ * well). For "custom" the address comes from DIFFY_ENV1_URL or DIFFY_ENV2_URL,
+ * with DIFFY_ENV1_USER and DIFFY_ENV1_PASS (or ENV2) for basic authentication.
+ * DIFFY_COMMIT_SHA is sent along for a GitHub check. An optional name labels
+ * the comparison.
  *
  * Example #1: Then compare diffy "prod" with "stage"
  * Example #2: Then compare diffy "production" with "staging"
  * Example #3: Then compare diffy "prod" with "dev"
- * Example #4: Then compare diffy "stage" with "dev"
+ * Example #4: Then compare diffy "stage" with "dev" with name "release-2.0"
  * Example #5: Then compare diffy "prod" with "baseline"
  * Example #6: Then compare diffy "baseline" with "custom"
  * Example #7: Then compare diffy "custom" with "custom"
  * Example #8: Then compare diffy "production" with "development"
  *
  */
-Then(/^(I |we )*compare diffy "([^"]*)" with "([^"]*)"$/, async function (pronounCase, env1, env2) {
+Then(/^(I |we )*compare diffy "([^"]*)" with "([^"]*)"(?: with name "([^"]*)")?$/, async function (pronounCase, env1, env2, name) {
   const cfg = this.diffyConfig;
-  ensureProjectId(cfg);
-  const toShort = { production: 'prod', staging: 'stage', development: 'dev' };
-  const e1 = toShort[env1] || env1;
-  const e2 = toShort[env2] || env2;
-  const allowed = ['prod', 'stage', 'dev', 'baseline', 'custom'];
-  if (!allowed.includes(e1) || !allowed.includes(e2)) {
-    throw new Error(`Invalid env. Allowed: ${allowed.join(', ')}.`);
-  }
-  const args = { env1: e1, env2: e2 };
-  if (e1 === 'custom') args.env1Url = cfg.env1Url;
-  if (e2 === 'custom') args.env2Url = cfg.env2Url;
-  const data = await diffyRequest(cfg, 'POST', `projects/${cfg.projectId}/compare`, { json: args });
-  const diffId = typeof data === 'object' ? (data.id || data.diffId || data) : data;
-  this.diffyCreatedDiffIds.push(diffId);
+  const id = await this.diffy.compare(env1, env2, {
+    name,
+    commitSha: cfg.commitSha,
+    env1Url: cfg.env1Url,
+    env2Url: cfg.env2Url,
+    env1User: cfg.env1User,
+    env1Pass: cfg.env1Pass,
+    env2User: cfg.env2User,
+    env2Pass: cfg.env2Pass,
+  });
+  this.diffyCreatedDiffIds.push(id);
 });
 
 /**
- * Upload every PNG/WebP under a local folder as a named Diffy custom snapshot.
- * Breakpoint is read from the PNG width; URL slug is derived from file name.
+ * Upload every PNG and WebP image under a local folder as one named screenshot
+ * set, the way Diffy's own CLI does. The breakpoint is the width of the image,
+ * and the URL Diffy files it under comes from its path: "home/Page One.png"
+ * becomes "/home-page-one". The set is a functional-test upload.
  *
  * Example #1: Then upload folder "./screenshots/baseline" to diffy as "baseline"
  * Example #2: Then upload folder "./screenshots/changed" to diffy as "changed"
@@ -388,54 +353,27 @@ Then(/^(I |we )*compare diffy "([^"]*)" with "([^"]*)"$/, async function (pronou
  *
  */
 Then(/^(I |we )*upload folder "([^"]*)" to diffy as "([^"]*)"$/, async function (pronounCase, folderPath, snapshotName) {
-  const cfg = this.diffyConfig;
-  ensureProjectId(cfg);
-  if (!fs.existsSync(folderPath) || !fs.statSync(folderPath).isDirectory()) {
-    throw new Error(`Folder not found: ${folderPath}`);
+  let images;
+  try {
+    images = collectFolderImages(folderPath);
+  } catch (e) {
+    throw friendly({
+      message: e.message,
+      hint: e.code === 'NO_FOLDER' ? 'The path is relative to the folder you run the tests from.' : 'Use PNG or WebP images that are not damaged.',
+    });
   }
-  const files = [];
-  (function walk(dir) {
-    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-      const full = path.join(dir, entry.name);
-      if (entry.isDirectory()) walk(full);
-      else if (/\.(png|webp)$/i.test(entry.name)) files.push(full);
-    }
-  })(folderPath);
-  if (!files.length) throw new Error(`No PNG/WebP images in ${folderPath}.`);
-  files.sort();
-
-  const form = new FormData();
-  form.append('snapshotName', snapshotName);
-  form.append('functionalTest', '1');
-  files.forEach((filepath, i) => {
-    const buffer = fs.readFileSync(filepath);
-    const rel = path.relative(folderPath, filepath).replace(/[\\/]/g, '-');
-    const slug = '/' + path.parse(rel).name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-    const width = detectPngWidth(buffer);
-    if (!width) throw new Error(`Cannot read width: ${filepath}`);
-    form.append(`files[${i}]`, new Blob([buffer], { type: 'image/png' }), path.basename(filepath));
-    form.append(`urls[${i}]`, slug);
-    form.append(`breakpoints[${i}]`, String(width));
-  });
-
-  const data = await diffyRequest(
-    cfg,
-    'POST',
-    `projects/${cfg.projectId}/create-custom-snapshot`,
-    { form }
-  );
-  const screenshotId = typeof data === 'object' ? (data.id || data.snapshotId || data) : data;
-  this.diffyCreatedScreenshotIds.push(screenshotId);
+  if (!images.length) {
+    throw friendly({ message: `There are no PNG or WebP images in ${folderPath}.`, hint: 'Diffy takes .png and .webp files, also in subfolders.' });
+  }
+  const id = await this.diffy.uploadSnapshot(snapshotName, images, { functionalTest: true });
+  this.diffyCreatedScreenshotIds.push(id);
 });
 
-function detectPngWidth(buffer) {
-  if (buffer.length < 24 || buffer[0] !== 0x89 || buffer[1] !== 0x50) return 0;
-  return buffer.readUInt32BE(16);
-}
-
 /**
- * Poll the last created Diffy comparison until it reaches a terminal state.
- * Timeout is DIFFY_MAX_WAIT seconds (default 1200).
+ * Wait until the last comparison created in this scenario is complete in
+ * Diffy. It polls every DIFFY_POLL_INTERVAL seconds, for at most DIFFY_MAX_WAIT
+ * seconds, and fails at once when Diffy stops the comparison. The result and
+ * the report link are added to the test report.
  *
  * Example #1: Then wait for diffy comparison to complete
  * Example #2: And wait for diffy comparison to complete
@@ -446,17 +384,16 @@ function detectPngWidth(buffer) {
  * Example #7: But I wait for diffy comparison to complete
  *
  */
-Then(/^(I |we )*wait for diffy comparison to complete$/, { timeout: 60 * 60 * 1000 }, async function (pronounCase) {
-  const cfg = this.diffyConfig;
-  const ids = this.diffyCreatedDiffIds || [];
-  if (!ids.length) throw new Error('No Diffy comparison created yet.');
-  const diffId = ids[ids.length - 1];
-  const step = 10;
-  const completed = new Set([2, 3, 4, 7]);
-  for (let i = 0; i < cfg.maxWait; i += step) {
-    const data = await diffyRequest(cfg, 'GET', `diffs/${diffId}`);
-    if (data && completed.has(Number(data.state))) return;
-    await new Promise(r => setTimeout(r, step * 1000));
+Then(/^(I |we )*wait for diffy comparison to complete$/, { timeout: -1 }, async function (pronounCase) {
+  const ids = this.diffyCreatedDiffIds;
+  if (!ids.length) {
+    throw friendly({
+      message: 'No Diffy comparison has been created in this scenario.',
+      hint: 'Create one first with "create diffy comparison" or "compare diffy ... with ...".',
+    });
   }
-  throw new Error(`Diffy comparison ${diffId} did not complete in ${cfg.maxWait}s.`);
+  const id = ids[ids.length - 1];
+  const diff = await this.diffy.waitForDiff(id);
+  this.diffyLastDiff = diff;
+  this.attach(summarize(id, diff));
 });

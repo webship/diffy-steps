@@ -23,10 +23,11 @@ BeforeAll(async function () {
     DIFFY_PROJECT_ID: '1001',
     DIFFY_BREAKPOINTS: '640,1200',
     DIFFY_MAX_WAIT: '30',
+    DIFFY_POLL_INTERVAL: '0.05',
     DIFFY_ENV1_URL: 'https://www.example.org',
     DIFFY_ENV2_URL: 'https://stage.example.org',
   });
-  // Faster states, so a wait step finishes in well under a second.
+  // Short states and a short poll interval, so a wait step ends in well under a second.
   process.env.DIFFY_MOCK_STAGE_MS = process.env.DIFFY_MOCK_STAGE_MS || '150';
 });
 

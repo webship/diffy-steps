@@ -178,6 +178,8 @@ Before(async function () {
  * Resize the browser viewport to a breakpoint width, so a page is laid out at
  * that width. The height is DIFFY_WINDOW_HEIGHT.
  *
+ * Diffy API: none (Playwright viewport)
+ *
  * Example #1: When I resize window to "1200"
  * Example #2: When we resize window to "640"
  * Example #3: When I resize window to "320"
@@ -206,6 +208,8 @@ When(/^(I |we )*resize window to "([^"]*)"$/, async function (pronounCase, break
  * screenshots to diffy with name" uploads the batch. Taking the same page at
  * the same width again replaces the earlier image.
  *
+ * Diffy API: none (Playwright screenshot, kept in memory until it is sent)
+ *
  * Example #1: Then I take screenshot
  * Example #2: Then we take screenshot
  * Example #3: And I take screenshot
@@ -222,6 +226,8 @@ Then(/^(I |we )*take screenshot$/, async function (pronounCase) {
 /**
  * Resize to each configured breakpoint and capture the current page at each.
  * The breakpoints come from DIFFY_BREAKPOINTS or worldParameters.diffy.breakpoints.
+ *
+ * Diffy API: none (Playwright screenshots, kept in memory until they are sent)
  *
  * Example #1: Then I take screenshots for all breakpoints
  * Example #2: Then we take screenshots for all breakpoints
@@ -252,6 +258,8 @@ Then(/^(I |we )*take screenshots for all breakpoints$/, async function (pronounC
  * images are sent in batches. On success the captured screenshots, and the
  * files this pack wrote to DIFFY_SCREENSHOTS_DIR, are cleared.
  *
+ * Diffy API: POST projects/{id}/create-custom-snapshot (multipart), and PUT snapshots/{id} for batches after the first ten images
+ *
  * Example #1: Then send screenshots to diffy with name "baseline"
  * Example #2: Then send screenshots to diffy with name "changed"
  * Example #3: Then send screenshots to diffy with name "homepage-release-2.0"
@@ -277,6 +285,8 @@ Then(/^(I |we )*send screenshots to diffy with name "([^"]*)"$/, async function 
 /**
  * Compare the last two screenshot sets of this scenario in Diffy.
  *
+ * Diffy API: POST projects/{id}/diffs
+ *
  * Example #1: Then create diffy comparison
  * Example #2: And create diffy comparison
  * Example #3: Then I create diffy comparison
@@ -294,6 +304,8 @@ Then(/^(I |we )*create diffy comparison$/, async function (pronounCase) {
 /**
  * Compare the last two screenshot sets of this scenario in Diffy and give the
  * comparison a name, which Diffy shows in its list and in notifications.
+ *
+ * Diffy API: POST projects/{id}/diffs
  *
  * Example #1: Then create diffy comparison with name "release-2.0"
  * Example #2: Then create diffy comparison with name "nightly"
@@ -313,6 +325,8 @@ Then(/^(I |we )*create diffy comparison with name "([^"]*)"$/, async function (p
  * environments. Accepts short (prod, stage, dev) or long (production, staging,
  * development) names, and "custom", which captures DIFFY_ENV1_URL.
  *
+ * Diffy API: POST projects/{id}/screenshots
+ *
  * Example #1: Then create diffy screenshot from "production" environment
  * Example #2: Then create diffy screenshot from "prod" environment
  * Example #3: Then create diffy screenshot from "staging" environment
@@ -330,6 +344,8 @@ Then(/^(I |we )*create diffy screenshot from "([^"]*)" environment$/, async func
 /**
  * Ask Diffy to capture the project's pages from a site at an address you give,
  * the custom environment. The site must be reachable from Diffy.
+ *
+ * Diffy API: POST projects/{id}/screenshots
  *
  * Example #1: Then create diffy screenshot from the custom environment "https://stage.example.org"
  * Example #2: And create diffy screenshot from the custom environment "https://www.un.org"
@@ -350,6 +366,8 @@ Then(/^(I |we )*create diffy screenshot from the custom environment "([^"]*)"$/,
  * with DIFFY_ENV1_USER and DIFFY_ENV1_PASS (or ENV2) for basic authentication.
  * DIFFY_COMMIT_SHA is sent along for a GitHub check. An optional name labels
  * the comparison.
+ *
+ * Diffy API: POST projects/{id}/compare
  *
  * Example #1: Then compare diffy "prod" with "stage"
  * Example #2: Then compare diffy "production" with "staging"
@@ -382,6 +400,8 @@ Then(/^(I |we )*compare diffy "([^"]*)" with "([^"]*)"(?: with name "([^"]*)")?$
  * and the URL Diffy files it under comes from its path: "home/Page One.png"
  * becomes "/home-page-one". The set is a functional-test upload.
  *
+ * Diffy API: POST projects/{id}/create-custom-snapshot (multipart), and PUT snapshots/{id} for batches after the first ten images
+ *
  * Example #1: Then upload folder "./screenshots/baseline" to diffy as "baseline"
  * Example #2: Then upload folder "./screenshots/changed" to diffy as "changed"
  * Example #3: Then upload folder "./reports/screenshots" to diffy as "nightly"
@@ -413,6 +433,8 @@ Then(/^(I |we )*upload folder "([^"]*)" to diffy as "([^"]*)"$/, async function 
  * seconds, and fails at once when Diffy stops the comparison. The result and
  * the report link are added to the test report.
  *
+ * Diffy API: GET diffs/{id} (polling)
+ *
  * Example #1: Then wait for diffy comparison to complete
  * Example #2: And wait for diffy comparison to complete
  * Example #3: Then I wait for diffy comparison to complete
@@ -443,6 +465,8 @@ Then(/^(I |we )*wait for diffy comparison to complete$/, { timeout: -1 }, async 
  * starts the capture; an uploaded set needs no waiting for. It polls every
  * DIFFY_POLL_INTERVAL seconds, for at most DIFFY_MAX_WAIT seconds.
  *
+ * Diffy API: GET snapshots/{id} (polling)
+ *
  * Example #1: Then wait for diffy screenshots to complete
  * Example #2: And wait for diffy screenshots to complete
  * Example #3: Then I wait for diffy screenshots to complete
@@ -463,6 +487,8 @@ Then(/^(I |we )*wait for diffy screenshots to complete$/, { timeout: -1 }, async
  * means Diffy reports a percentage of changed pages above zero, or any page
  * with changed pixels. The comparison is waited for when no step has waited
  * for it. A failure lists the changed pages and the report link.
+ *
+ * Diffy API: GET diffs/{id}
  *
  * Example #1: Then the diffy comparison should have changes
  * Example #2: And the diffy comparison should have changes
@@ -489,6 +515,8 @@ Then(/^the diffy comparison should( not)* have changes$/, { timeout: -1 }, async
  * Assert that the share of pages that changed in the last comparison, as
  * Diffy reports it in percent, is at most a number. Use "0" for no change at
  * all. The comparison is waited for when no step has waited for it.
+ *
+ * Diffy API: GET diffs/{id}
  *
  * Example #1: Then the diffy comparison should have at most "0" percent of pages changed
  * Example #2: And the diffy comparison should have at most "5" percent of pages changed
@@ -519,6 +547,8 @@ Then(/^the diffy comparison should have at most "([^"]*)" percent of pages chang
  * project, which "compare diffy ... with "baseline"" compares against. This
  * replaces the baseline the project had.
  *
+ * Diffy API: PUT projects/{id}/set-base-line-set/{screenshotId}
+ *
  * Example #1: Then set the last diffy screenshots as the baseline
  * Example #2: And set the last diffy screenshots as the baseline
  * Example #3: Then I set the last diffy screenshots as the baseline
@@ -536,6 +566,8 @@ Then(/^(I |we )*set the last diffy screenshots as the baseline$/, async function
  * Check that the Diffy API key, the account's API access and the project id
  * work together, by reading the project. Put it first in a feature so a wrong
  * key or project id fails with a hint before any capture is made.
+ *
+ * Diffy API: GET projects/{id}
  *
  * Example #1: Given the diffy project is reachable
  * Example #2: Then the diffy project should be reachable

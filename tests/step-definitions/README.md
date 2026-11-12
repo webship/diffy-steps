@@ -142,8 +142,8 @@ npm test
 # Run only Diffy-tagged scenarios.
 npx cucumber-js --config cucumber.js --tags "@diffy"
 
-# Diffy real-API subset (requires live key + allowed URLs in the project)
-npx cucumber-js --config cucumber.js --tags "@diffy and @real-api"
+# The same features against the real Diffy API (requires DIFFY_API_KEY and DIFFY_PROJECT_ID)
+npm run test:live
 ```
 
 ### 6. CI hookup (optional)
@@ -230,10 +230,10 @@ Located in `tests/features/`. All scenarios tagged `@diffy`.
 |------|---------|-----------|
 | `01-example-demo.feature` | Canonical example using bundled `/diffy/baseline.html` + `/diffy/changed.html` | `@example` |
 | `02-all-steps.feature`    | Smoke test of every step definition      | `@smoke` + sub-tags |
-| `03-real-api.feature`     | Minimal run against the real Diffy API    | `@real-api` |
 
-`03-real-api.feature` is excluded by the default `tags: 'not @real-api'` in
-`cucumber.js`; run it explicitly with `npx cucumber-js --tags "@real-api"`.
+The features run in two lanes: against a local mock of the Diffy API
+(`npm test`) and against the real API (`npm run test:live`, which needs
+`DIFFY_API_KEY` and `DIFFY_PROJECT_ID` and prints why it skipped without them).
 
 Bundled example pages live in `examples/diffy/baseline.html` and
 `examples/diffy/changed.html` (with a local index at

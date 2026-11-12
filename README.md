@@ -116,32 +116,41 @@ Per-step documentation: [docs/](docs/).
 
 ## Running this repo's own test suite
 
-This repository is itself a working webship-js project. Its features run against the bundled example pages in `examples/diffy/` and a **local mock Diffy API** (`tests/support/mock-diffy-api/`), so the default run needs no Diffy account and no network access.
+This repository is itself a working webship-js project. Its features run in two lanes.
+
+| Lane | Command | Talks to | Needs |
+| --- | --- | --- | --- |
+| Mock | `npm test` | a local mock of the Diffy API, started by the suite | nothing |
+| Live | `npm run test:live` | `https://app.diffy.website/api/` | `DIFFY_API_KEY` and `DIFFY_PROJECT_ID` |
 
 ```bash
 npm install
 npx playwright install --with-deps chromium
-npm start &          # serves examples/ on http://localhost:8080
-npm test             # mock Diffy API, @real-api scenarios excluded
+npm run test:unit    # the mock itself, checked against the documented contract
+npm test             # the features, mock lane (the example pages are served by the suite)
 ```
 
-Against the real Diffy API:
+The mock follows the [Diffy Swagger](https://app.diffy.website/rest/swagger.json) and the state values of the official [Diffy PHP client](https://github.com/DiffyWebsite/diffy-php): bearer authentication with an expiring token, validated payloads, screenshots and diffs that are only complete after some polling, and a diff result computed from the images. A request that does not match the contract fails the run.
+
+The live lane runs the same features against the real service. Without a key it prints why it skipped and exits with 0:
 
 ```bash
-export DIFFY_API_KEY="your-key"
+export DIFFY_API_KEY="your-key"       # https://app.diffy.website/#/keys (the account needs API access)
 export DIFFY_PROJECT_ID="30542"
-export DIFFY_API_BASE_URL="https://app.diffy.website/api/"
-export DIFFY_BREAKPOINTS="640,1200"
-npx cucumber-js --tags "@real-api"
+npm run test:live
 ```
 
-The project's allowed URLs must cover `LAUNCH_URL` — expose the local `examples/` through a tunnel, or point `LAUNCH_URL` at a hosted copy.
+Scenarios that need a project with production and staging URLs Diffy can reach are skipped in the live lane unless `DIFFY_LIVE_PROJECT_ENVIRONMENTS=1` is set; scenarios that need two public URLs unless `DIFFY_ENV1_URL` and `DIFFY_ENV2_URL` are set.
+
+The suite serves `examples/` itself on the port of `LAUNCH_URL` (default `http://localhost:8080`). Set `LAUNCH_URL` to another port if 8080 is taken.
 
 Other scripts:
 
 | Script | Effect |
 | --- | --- |
-| `npm test` | Full suite, pretty output, mock Diffy API |
+| `npm test` | Full suite, pretty output, mock lane |
+| `npm run test:live` | The same features against the real Diffy API |
+| `npm run test:unit` | Checks of the mock against the documented contract |
 | `npm run test:dry` | `--dry-run` — checks for undefined/ambiguous steps only |
 | `npm run test:headed` | Headed browser |
 | `npm run test:chromium` / `test:firefox` / `test:webkit` | Pick a browser |

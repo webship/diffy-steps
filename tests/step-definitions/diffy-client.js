@@ -400,6 +400,16 @@ class DiffyClient {
     }
   }
 
+  /**
+   * Read the project: proves the key, the API access and the project id at once.
+   * GET projects/{id}
+   *
+   * @returns {Promise<object>} The project settings (name, URLs, breakpoints, ...).
+   */
+  async getProject() {
+    return this.request('GET', `projects/${this.ensureProject()}`);
+  }
+
   // ------------------------------------------------------------ screenshots
 
   /**

@@ -31,10 +31,11 @@
 // ---------------------------------------------------------------------------
 
 const { When, Then, Before } = require('@cucumber/cucumber');
+const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
 const { friendly, smartSettle } = require('webship-js/tests/step-definitions/webship');
-const { DiffyClient, resolveConfig, summarize } = require('./diffy-client');
+const { DiffyClient, resolveConfig, summarize, changedPages } = require('./diffy-client');
 const { collectFolderImages } = require('./diffy-images');
 
 /**
@@ -127,6 +128,41 @@ function screenshotIds(world, needed) {
   return ids;
 }
 
+/**
+ * The finished data of the last comparison of this scenario. The comparison is
+ * waited for when no step has waited for it yet.
+ *
+ * @param {object} world
+ * @returns {Promise<{id: number, diff: object}>}
+ */
+async function finishedDiff(world) {
+  const ids = world.diffyCreatedDiffIds;
+  if (!ids.length) {
+    throw friendly({
+      message: 'No Diffy comparison has been created in this scenario.',
+      hint: 'Create one first with "create diffy comparison" or "compare diffy ... with ...".',
+    });
+  }
+  const id = ids[ids.length - 1];
+  if (!world.diffyLastDiff || world.diffyLastDiffId !== id) {
+    world.diffyLastDiff = await world.diffy.waitForDiff(id);
+    world.diffyLastDiffId = id;
+  }
+  return { id, diff: world.diffyLastDiff };
+}
+
+/**
+ * The changed pages of a diff as text, for an error message.
+ *
+ * @param {object} diff
+ * @returns {string}
+ */
+function listChanges(diff) {
+  const changed = changedPages(diff);
+  const shown = changed.slice(0, 10).map((c) => `${c.url} at ${c.breakpoint}: ${c.percentage}%`).join('; ');
+  return changed.length > 10 ? `${shown}; and ${changed.length - 10} more` : shown;
+}
+
 Before(async function () {
   this.diffyConfig = resolveConfig(this.parameters);
   this.diffy = new DiffyClient(this.diffyConfig);
@@ -134,6 +170,8 @@ Before(async function () {
   this.diffyFiles = [];
   this.diffyCreatedScreenshotIds = [];
   this.diffyCreatedDiffIds = [];
+  this.diffyLastDiff = null;
+  this.diffyLastDiffId = null;
 });
 
 /**
@@ -395,5 +433,118 @@ Then(/^(I |we )*wait for diffy comparison to complete$/, { timeout: -1 }, async 
   const id = ids[ids.length - 1];
   const diff = await this.diffy.waitForDiff(id);
   this.diffyLastDiff = diff;
+  this.diffyLastDiffId = id;
   this.attach(summarize(id, diff));
+});
+
+/**
+ * Wait until the last screenshot set of this scenario is complete in Diffy.
+ * Needed after "create diffy screenshot from ... environment", which only
+ * starts the capture; an uploaded set needs no waiting for. It polls every
+ * DIFFY_POLL_INTERVAL seconds, for at most DIFFY_MAX_WAIT seconds.
+ *
+ * Example #1: Then wait for diffy screenshots to complete
+ * Example #2: And wait for diffy screenshots to complete
+ * Example #3: Then I wait for diffy screenshots to complete
+ * Example #4: Then we wait for diffy screenshots to complete
+ * Example #5: And I wait for diffy screenshots to complete
+ * Example #6: But we wait for diffy screenshots to complete
+ *
+ */
+Then(/^(I |we )*wait for diffy screenshots to complete$/, { timeout: -1 }, async function (pronounCase) {
+  const ids = screenshotIds(this, 1);
+  const id = ids[ids.length - 1];
+  const screenshot = await this.diffy.waitForScreenshot(id);
+  this.attach(`Diffy screenshot set ${id} is complete${screenshot.name ? `: "${screenshot.name}"` : ''}.`);
+});
+
+/**
+ * Assert that the last comparison found changes, or found none. "Changes"
+ * means Diffy reports a percentage of changed pages above zero, or any page
+ * with changed pixels. The comparison is waited for when no step has waited
+ * for it. A failure lists the changed pages and the report link.
+ *
+ * Example #1: Then the diffy comparison should have changes
+ * Example #2: And the diffy comparison should have changes
+ * Example #3: Then the diffy comparison should not have changes
+ * Example #4: And the diffy comparison should not have changes
+ * Example #5: But the diffy comparison should not have changes
+ *
+ */
+Then(/^the diffy comparison should( not)* have changes$/, { timeout: -1 }, async function (notCase) {
+  const { id, diff } = await finishedDiff(this);
+  const result = Number(diff.result) || 0;
+  const changed = result > 0 || changedPages(diff).length > 0;
+  const report = diff.diffSharedUrl ? `Report: ${diff.diffSharedUrl}` : undefined;
+  assert.ok(
+    notCase ? !changed : changed,
+    friendly(notCase
+      ? { message: `Expected Diffy comparison ${id} to show no changes, but ${result}% of the pages changed.`, cause: listChanges(diff), hint: report }
+      : { message: `Expected Diffy comparison ${id} to show changes, but Diffy found none.`, cause: 'the two screenshot sets are the same', hint: 'Check that the two sets were taken from different pages or environments.' }
+    ).message
+  );
+});
+
+/**
+ * Assert that the share of pages that changed in the last comparison, as
+ * Diffy reports it in percent, is at most a number. Use "0" for no change at
+ * all. The comparison is waited for when no step has waited for it.
+ *
+ * Example #1: Then the diffy comparison should have at most "0" percent of pages changed
+ * Example #2: And the diffy comparison should have at most "5" percent of pages changed
+ * Example #3: Then the diffy comparison should have at most "10" percent of pages changed
+ * Example #4: And the diffy comparison should have at most "25" percent of pages changed
+ * Example #5: Then the diffy comparison should have at most "100" percent of pages changed
+ *
+ */
+Then(/^the diffy comparison should have at most "([^"]*)" percent of pages changed$/, { timeout: -1 }, async function (limit) {
+  const max = Number(limit);
+  if (!/^\d+(\.\d+)?$/.test(limit.trim()) || max > 100) {
+    throw friendly({ message: `"${limit}" is not a percentage.`, hint: 'Use a number from 0 to 100, for example: at most "5" percent of pages changed.' });
+  }
+  const { id, diff } = await finishedDiff(this);
+  const result = Number(diff.result) || 0;
+  assert.ok(
+    result <= max,
+    friendly({
+      message: `Expected at most ${max}% of the pages of Diffy comparison ${id} to change, but ${result}% changed.`,
+      cause: listChanges(diff),
+      hint: diff.diffSharedUrl ? `Report: ${diff.diffSharedUrl}` : undefined,
+    }).message
+  );
+});
+
+/**
+ * Make the last screenshot set of this scenario the baseline of the Diffy
+ * project, which "compare diffy ... with "baseline"" compares against. This
+ * replaces the baseline the project had.
+ *
+ * Example #1: Then set the last diffy screenshots as the baseline
+ * Example #2: And set the last diffy screenshots as the baseline
+ * Example #3: Then I set the last diffy screenshots as the baseline
+ * Example #4: Then we set the last diffy screenshots as the baseline
+ * Example #5: And I set the last diffy screenshots as the baseline
+ * Example #6: But we set the last diffy screenshots as the baseline
+ *
+ */
+Then(/^(I |we )*set the last diffy screenshots as the baseline$/, async function (pronounCase) {
+  const ids = screenshotIds(this, 1);
+  await this.diffy.setBaseline(ids[ids.length - 1]);
+});
+
+/**
+ * Check that the Diffy API key, the account's API access and the project id
+ * work together, by reading the project. Put it first in a feature so a wrong
+ * key or project id fails with a hint before any capture is made.
+ *
+ * Example #1: Given the diffy project is reachable
+ * Example #2: Then the diffy project should be reachable
+ * Example #3: And the diffy project is reachable
+ * Example #4: And the diffy project should be reachable
+ * Example #5: But the diffy project is reachable
+ *
+ */
+Then(/^the diffy project (?:is|should be) reachable$/, async function () {
+  const project = await this.diffy.getProject();
+  this.attach(`Diffy project ${this.diffyConfig.projectId}${project && project.name ? `: "${project.name}"` : ''} is reachable.`);
 });

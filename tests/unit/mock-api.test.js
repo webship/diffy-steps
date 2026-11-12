@@ -6,10 +6,11 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const { createMock } = require('../support/mock-diffy-api/server');
+const { solidPng, decodePng, pixelDifference } = require('../support/mock-diffy-api/png');
 
-// A 1x1 PNG, and a second one that differs.
-const PNG_A = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64');
-const PNG_B = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==', 'base64');
+// Two PNGs that differ in every pixel.
+const PNG_A = solidPng(16, 16, [10, 20, 30]);
+const PNG_B = solidPng(16, 16, [200, 100, 50]);
 
 let mock;
 let base;
@@ -116,6 +117,27 @@ test('an uploaded screenshot is polled through its states, a diff of different i
   assert.ok(done.result > 0);
   assert.ok(done.diffSharedUrl);
   assert.ok(Number(done.diffs['/']['640'].percentageChanges) > 0);
+});
+
+test('images are compared by their pixels: other bytes with the same pixels, or a tiny colour shift, are no change', async () => {
+  const sameLook = Buffer.concat([PNG_A, Buffer.from('trailing bytes')]);
+  const shifted = solidPng(16, 16, [14, 20, 30]);
+  assert.notDeepStrictEqual(sameLook, PNG_A);
+  for (const other of [sameLook, shifted]) {
+    const a = await (await call('POST', 'projects/1001/create-custom-snapshot', upload('a', [{ buffer: PNG_A, url: '/', breakpoint: 640 }]))).json();
+    const b = await (await call('POST', 'projects/1001/create-custom-snapshot', upload('b', [{ buffer: other, url: '/', breakpoint: 640 }]))).json();
+    const diffId = await (await call('POST', 'projects/1001/diffs', { snapshot1: a, snapshot2: b })).json();
+    const done = await poll(`diffs/${diffId}`, (d) => d.state >= 2 && d.state !== 5);
+    assert.strictEqual(done.result, 0);
+  }
+});
+
+test('the pixel difference is the share of differing pixels; a larger image counts its extra area', async () => {
+  const a = decodePng(PNG_A);
+  const b = decodePng(PNG_B);
+  assert.strictEqual(pixelDifference(a, b), 100);
+  assert.strictEqual(pixelDifference(a, a), 0);
+  assert.strictEqual(pixelDifference(a, decodePng(solidPng(16, 32, [10, 20, 30]))), 50);
 });
 
 test('a diff of identical images has no changes', async () => {

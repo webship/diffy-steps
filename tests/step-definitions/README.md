@@ -196,6 +196,11 @@ npm uninstall @webship-js/diffy-steps
 | `Then compare diffy "<env1>" with "<env2>"` | `POST projects/{id}/compare` |
 | `Then upload folder "<path>" to diffy as "<name>"` | `POST projects/{id}/create-custom-snapshot` (functional test) |
 | `Then wait for diffy comparison to complete` | `GET diffs/{id}` (polling) |
+| `Then wait for diffy screenshots to complete` | `GET snapshots/{id}` (polling) |
+| `Then the diffy comparison should (not) have changes` | `GET diffs/{id}` (`result`, `diffs`) |
+| `Then the diffy comparison should have at most "<n>" percent of pages changed` | `GET diffs/{id}` (`result`) |
+| `Then set the last diffy screenshots as the baseline` | `PUT projects/{id}/set-base-line-set/{screenshotId}` |
+| `Then the diffy project should be reachable` | `GET projects/{id}` |
 
 ## Example
 

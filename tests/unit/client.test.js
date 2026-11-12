@@ -8,7 +8,10 @@ const assert = require('node:assert');
 const { createMock } = require('../support/mock-diffy-api/server');
 const { DiffyClient, resolveConfig, toId, retryDelay, clearTokens, changedPages, summarize } = require('../step-definitions/diffy-client');
 
-const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64');
+const { solidPng } = require('../support/mock-diffy-api/png');
+
+const PNG = solidPng(16, 16, [10, 20, 30]);
+const OTHER_PNG = solidPng(16, 16, [200, 100, 50]);
 
 let mock;
 let baseUrl;
@@ -148,7 +151,7 @@ test('a custom environment screenshot sends its base URL', async () => {
 test('a diff of two uploads completes and reports a change; the same images report none', async () => {
   const c = client();
   const a = await c.uploadSnapshot('a', images(1, { url: '/' }), { functionalTest: true });
-  const b = await c.uploadSnapshot('b', [{ buffer: Buffer.concat([PNG, Buffer.from([1])]), url: '/', breakpoint: 640, filename: 'b.png', contentType: 'image/png' }], { functionalTest: true });
+  const b = await c.uploadSnapshot('b', [{ buffer: OTHER_PNG, url: '/', breakpoint: 640, filename: 'b.png', contentType: 'image/png' }], { functionalTest: true });
   const same = await c.uploadSnapshot('a2', images(1, { url: '/' }), { functionalTest: true });
   const changed = await c.waitForDiff(await c.createDiff(a, b, 'ab'));
   assert.ok(changed.result > 0);

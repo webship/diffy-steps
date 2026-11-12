@@ -5,12 +5,14 @@ module.exports = {
     require: [
       'node_modules/webship-js/tests/step-definitions/**/*.js', // Webship-js core step definitions.
       'tests/step-definitions/**/*.js',                         // This plugin's Diffy steps.
-      'tests/support/**/*.js',                                  // Mock Diffy API (local runs only).
+      'tests/support/**/*.js',                                  // Example site, mock Diffy API and lane hooks.
     ],
     paths: ['tests/features/**/*.feature'],
-    // The real-API scenarios need a live DIFFY_API_KEY, so they are excluded
-    // by default. Run them with: npx cucumber-js --tags "@real-api".
-    tags: 'not @real-api',
+    // Two lanes run the same features. The mock lane (default) starts a local
+    // mock of the Diffy API. The live lane (npm run test:live) sets
+    // DIFFY_LANE=live and talks to the real API; scenarios that need the mock
+    // are left out. See tests/support/diffy-mock.js.
+    tags: process.env.DIFFY_LANE === 'live' ? '@diffy and not @mock-only' : '@diffy',
     format: [
       '@cucumber/pretty-formatter',
       'json:tests/reports/cucumber_report.json',
@@ -62,21 +64,14 @@ module.exports = {
         filenamePatternFailed: '{failed_prefix}{datetime}.{feature_file}.feature_{step_line}.{ext}',
         infoTypes: '',
       },
-      // Diffy configuration. Resolution order is always
-      //   process.env.DIFFY_* -> these values -> built-in defaults.
-      // Never commit a real apiKey — set DIFFY_API_KEY in the environment.
-      // baseUrl defaults to the bundled mock server so `npm test` runs offline;
-      // point it at https://app.diffy.website/api/ for real comparisons.
+      // Diffy defaults for this repository's own features. Resolution order
+      // is always process.env.DIFFY_* -> these values -> built-in defaults.
+      // Never put an API key here: export DIFFY_API_KEY. In the mock lane the
+      // key, project id and API address come from the mock (see
+      // tests/support/diffy-mock.js), not from here or from the shell.
       diffy: {
-        apiKey: 'mock-key',                          // DIFFY_API_KEY
-        projectId: 1,                                // DIFFY_PROJECT_ID
         breakpoints: '640,1200',                     // DIFFY_BREAKPOINTS
         windowHeight: 2000,                          // DIFFY_WINDOW_HEIGHT
-        screenshotsDir: '',                          // DIFFY_SCREENSHOTS_DIR
-        baseUrl: 'http://127.0.0.1:3099/',           // DIFFY_API_BASE_URL (mock server)
-        maxWait: 30,                                 // DIFFY_MAX_WAIT (seconds)
-        env1Url: '',                                 // DIFFY_ENV1_URL (custom env)
-        env2Url: '',                                 // DIFFY_ENV2_URL (custom env)
       },
     },
   },

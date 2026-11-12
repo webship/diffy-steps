@@ -1,7 +1,7 @@
 Feature: Diffy — example pages demo
   Drive the bundled /diffy/baseline.html and /diffy/changed.html example
-  pages through the Diffy capture + comparison flow. Safe to run against
-  the mock Diffy API for local development.
+  pages through the Diffy capture and comparison flow. It runs against the
+  mock Diffy API (npm test) and against the real API (npm run test:live).
 
   Config resolution (per-scenario):
     1. process.env.DIFFY_*

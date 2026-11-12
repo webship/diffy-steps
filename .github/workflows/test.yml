@@ -11,6 +11,7 @@ env:
   FORCE_COLOR: '1'
 
 jobs:
+  # The mock lane: needs no Diffy account.
   cucumber:
     runs-on: ubuntu-latest
 
@@ -27,23 +28,13 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
-      - name: Serve the example pages
-        run: npm start &
-
-      - name: Wait for the example server
-        run: |
-          for i in $(seq 1 30); do
-            code=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/diffy/baseline.html || true)
-            [ "$code" = "200" ] && exit 0
-            sleep 1
-          done
-          echo "Example server did not become ready in time" >&2
-          exit 1
-
       - name: Run cucumber dry-run (no ambiguous/undefined steps)
         run: npm run test:dry
 
-      - name: Run Diffy step tests against the mock Diffy API
+      - name: Check the mock Diffy API against the documented contract
+        run: npm run test:unit
+
+      - name: Run the features against the mock Diffy API
         run: npm test
 
       - name: Upload test report
@@ -55,3 +46,28 @@ jobs:
             tests/reports/cucumber_report.json
             screenshots/
           retention-days: 14
+
+  # The live lane: the same features against the real Diffy API. It runs on
+  # pushes and manual runs, never on pull requests, and without the secrets it
+  # prints why it skipped and ends green.
+  live:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    env:
+      DIFFY_API_KEY: ${{ secrets.DIFFY_API_KEY }}
+      DIFFY_PROJECT_ID: ${{ vars.DIFFY_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run the features against the real Diffy API
+        run: npm run test:live

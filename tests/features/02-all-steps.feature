@@ -1,7 +1,10 @@
 Feature: Diffy — all step definitions smoke test
   Exercise every Diffy step at least once against the example pages.
-  Intended for mock-Diffy runs (some steps require specific Diffy plan
-  features and may fail against production with a valid key).
+  The same scenarios run in two lanes: against a local mock of the Diffy API
+  (npm test) and against the real API (npm run test:live). The scenarios
+  tagged project-environments need a Diffy project whose production and
+  staging URLs Diffy can reach; the live lane skips them unless
+  DIFFY_LIVE_PROJECT_ENVIRONMENTS=1.
 
   @diffy @smoke
   Scenario: Resize, take screenshot, breakpoints loop, send
@@ -32,12 +35,12 @@ Feature: Diffy — all step definitions smoke test
     Then create diffy comparison with name "PR-smoke"
     Then wait for diffy comparison to complete
 
-  @diffy @smoke @env-compare
+  @diffy @smoke @env-compare @project-environments
   Scenario: Server-side environment compare
     Then compare diffy "prod" with "stage"
     Then wait for diffy comparison to complete
 
-  @diffy @smoke @env-screenshot
+  @diffy @smoke @env-screenshot @project-environments
   Scenario: Trigger Diffy-side screenshot run per environment
     Then create diffy screenshot from "production" environment
     Then create diffy screenshot from "staging" environment
@@ -46,7 +49,7 @@ Feature: Diffy — all step definitions smoke test
 
   @diffy @smoke @folder-upload
   Scenario: Upload PNG folders to Diffy
-    Then upload folder "/tmp/diffy-test-screenshots/baseline" to diffy as "folder-baseline"
-    Then upload folder "/tmp/diffy-test-screenshots/feature" to diffy as "folder-feature"
+    Then upload folder "./tests/fixtures/images/baseline" to diffy as "folder-baseline"
+    Then upload folder "./tests/fixtures/images/changed" to diffy as "folder-feature"
     Then create diffy comparison with name "folder-pair"
     Then wait for diffy comparison to complete

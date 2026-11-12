@@ -7,6 +7,11 @@ Feature: Diffy — all step definitions smoke test
   DIFFY_LIVE_PROJECT_ENVIRONMENTS=1. The ones tagged remote-url need two
   addresses Diffy can reach, in DIFFY_ENV1_URL and DIFFY_ENV2_URL.
 
+  @diffy @smoke @project-check
+  Scenario: Check the key and the project id
+    Given the diffy project is reachable
+    Then the diffy project should be reachable
+
   @diffy @smoke
   Scenario: Resize, take screenshot, breakpoints loop, send
     Given I am on "/diffy/baseline.html"
@@ -47,6 +52,15 @@ Feature: Diffy — all step definitions smoke test
     Then create diffy screenshot from "staging" environment
     Then create diffy comparison with name "env-pair"
     Then wait for diffy comparison to complete
+
+  @diffy @smoke @baseline @project-environments @sets-baseline
+  Scenario: Wait for screenshots, make them the baseline and compare against it
+    Then create diffy screenshot from "production" environment
+    Then wait for diffy screenshots to complete
+    Then set the last diffy screenshots as the baseline
+    Then compare diffy "baseline" with "prod"
+    Then wait for diffy comparison to complete
+    Then the diffy comparison should have at most "0" percent of pages changed
 
   @diffy @smoke @env-custom @remote-url
   Scenario: Custom environments, at the address of the variables and at an address in the step

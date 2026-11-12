@@ -10,18 +10,20 @@
 //     expires, every other route needs it and answers 401 without it,
 //   - the screenshot and diff states of the official Diffy PHP client, which a
 //     caller has to poll through: nothing is complete the moment it is created,
-//   - a result computed from the images: two snapshots whose images match give
-//     0 percent, otherwise the share of changed pages.
+//   - a result computed from the images: uploaded PNGs are compared pixel by
+//     pixel (a difference of up to 8 per colour channel is ignored), and the
+//     result is the share of pages with a changed pixel.
 //
-// What it does not do: render anything. Images are only hashed. Remote
-// screenshots (environments) are hashed from their environment and URL, so
-// "prod against prod" is unchanged and "prod against stage" is changed.
+// What it does not do: render anything. Remote screenshots (environments)
+// have no image; they are told apart by their environment and URL, so "prod
+// against prod" is unchanged and "prod against stage" is changed.
 //
 // Only the routes the steps use are served. Anything else answers 404.
 
 const crypto = require('crypto');
 const http = require('http');
 const { parseMultipart } = require('./multipart');
+const { decodePng, pixelDifference } = require('./png');
 const { SNAPSHOT_STATE, DIFF_STATE, fullProject, fullScreenshot, fullDiff } = require('./fixtures');
 
 const API_KEY = 'mock-key';
@@ -135,14 +137,21 @@ function createMock(options = {}) {
       if (!left || !right) {
         changes = 100;
       } else if (left.hash !== right.hash) {
-        changes = 1 + ((parseInt(left.hash.slice(0, 6), 16) ^ parseInt(right.hash.slice(0, 6), 16)) % 4000) / 100;
+        const pixels = (item) => {
+          if (item.decoded === undefined) item.decoded = item.buffer ? decodePng(item.buffer) : null;
+          return item.decoded;
+        };
+        const a = pixels(left);
+        const b = pixels(right);
+        // Pixels when both images can be read; otherwise any difference in the bytes is a change.
+        changes = a && b ? pixelDifference(a, b) : 100;
       }
       if (changes) changedPages.add(url);
       result[url] = result[url] || {};
       result[url][breakpoint] = {
         diff: { score: changes ? changes / 100 : 0, full: `${host}/mock/images/${sha1(k)}-diff.png`, thumbnail: `${host}/mock/images/${sha1(k)}-diff-thumbnail.png` },
         idiff: { score: 0, full: '', thumbnail: '' },
-        percentageChanges: changes ? changes.toFixed(2) : '0',
+        percentageChanges: changes ? changes.toFixed(4) : '0',
       };
     }
     return { diffs: result, result: pages.size ? Math.round((100 * changedPages.size) / pages.size) : 0 };
@@ -259,7 +268,7 @@ function createMock(options = {}) {
       if (!png && !webp) return invalid(res, `files[${i}] is not a PNG or WebP image`);
       if (!/^[1-9]\d*$/.test(breakpoints[i])) return invalid(res, `breakpoints[${i}] must be an integer`);
       if (!urls[i]) return invalid(res, `urls[${i}] is empty`);
-      items.push({ url: urls[i], breakpoint: parseInt(breakpoints[i], 10), hash: sha1(data) });
+      items.push({ url: urls[i], breakpoint: parseInt(breakpoints[i], 10), hash: sha1(data), buffer: data });
     }
     const name = field('snapshotName')[0];
     const functional = field('functionalTest')[0];

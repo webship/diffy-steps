@@ -97,6 +97,11 @@ More runnable examples: [tests/features/](tests/features/).
 | `Then compare diffy "<env1>" with "<env2>"` | `POST projects/{id}/compare` |
 | `Then upload folder "<path>" to diffy as "<name>"` | `POST projects/{id}/create-custom-snapshot` |
 | `Then wait for diffy comparison to complete` | `GET diffs/{id}` (polling) |
+| `Then wait for diffy screenshots to complete` | `GET snapshots/{id}` (polling) |
+| `Then the diffy comparison should (not) have changes` | `GET diffs/{id}` (`result`, `diffs`) |
+| `Then the diffy comparison should have at most "<n>" percent of pages changed` | `GET diffs/{id}` (`result`) |
+| `Then set the last diffy screenshots as the baseline` | `PUT projects/{id}/set-base-line-set/{screenshotId}` |
+| `Then the diffy project should be reachable` | `GET projects/{id}` |
 
 Per-step documentation: [docs/](docs/).
 
@@ -144,7 +149,7 @@ export DIFFY_PROJECT_ID="30542"
 npm run test:live
 ```
 
-Scenarios that need a project with production and staging URLs Diffy can reach are skipped in the live lane unless `DIFFY_LIVE_PROJECT_ENVIRONMENTS=1` is set; scenarios that need two public URLs unless `DIFFY_ENV1_URL` and `DIFFY_ENV2_URL` are set.
+Scenarios that need a project with production and staging URLs Diffy can reach are skipped in the live lane unless `DIFFY_LIVE_PROJECT_ENVIRONMENTS=1` is set; scenarios that need two public URLs unless `DIFFY_ENV1_URL` and `DIFFY_ENV2_URL` are set; the scenario that replaces the project's baseline unless `DIFFY_LIVE_SET_BASELINE=1` (use a project made for testing).
 
 The suite serves `examples/` itself on the port of `LAUNCH_URL` (default `http://localhost:8080`). Set `LAUNCH_URL` to another port if 8080 is taken.
 

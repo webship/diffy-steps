@@ -1,3 +1,5 @@
+<p align="center"><img src="https://raw.githubusercontent.com/webship/diffy-steps/2.0.x/assets/logo.svg" alt="Diffy logo" width="96"></p>
+
 # @webship-js/diffy-steps
 
 [![Test](https://github.com/webship/diffy-steps/actions/workflows/test.yml/badge.svg)](https://github.com/webship/diffy-steps/actions/workflows/test.yml)
@@ -186,3 +188,7 @@ Extracted from [webship-js](https://github.com/webship/webship-js), where these 
 ## License
 
 MIT © Webship.co — see [LICENSE](LICENSE).
+
+## Logo
+
+The Diffy logo in this README is the favicon of diffy.website and belongs to Diffy. The Diffy name and logo are trademarks of their owner; this pack is not affiliated with or endorsed by them.

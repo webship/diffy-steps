@@ -7,6 +7,13 @@ on:
     branches: ['2.0.x']
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 env:
   FORCE_COLOR: '1'
 
@@ -14,6 +21,7 @@ jobs:
   # The mock lane: needs no Diffy account.
   cucumber:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
 
     steps:
       - uses: actions/checkout@v4
@@ -49,9 +57,11 @@ jobs:
         with:
           name: cucumber-report
           path: |
-            tests/reports/cucumber_report.json
+            tests/reports/
             screenshots/
+            videos/
           retention-days: 14
+          if-no-files-found: ignore
 
   # The live lane: the same features against the real Diffy API. It runs on
   # pushes and manual runs, never on pull requests, and without the secrets it
@@ -59,6 +69,7 @@ jobs:
   live:
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     env:
       DIFFY_API_KEY: ${{ secrets.DIFFY_API_KEY }}
       DIFFY_PROJECT_ID: ${{ vars.DIFFY_PROJECT_ID }}

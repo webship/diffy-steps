@@ -31,7 +31,6 @@
 // ---------------------------------------------------------------------------
 
 const { When, Then, Before } = require('@cucumber/cucumber');
-const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
 const { friendly, smartSettle } = require('webship-js/tests/step-definitions/webship');
@@ -502,13 +501,11 @@ Then(/^the diffy comparison should( not)* have changes$/, { timeout: -1 }, async
   const result = Number(diff.result) || 0;
   const changed = result > 0 || changedPages(diff).length > 0;
   const report = diff.diffSharedUrl ? `Report: ${diff.diffSharedUrl}` : undefined;
-  assert.ok(
-    notCase ? !changed : changed,
-    friendly(notCase
+  if (notCase ? changed : !changed) {
+    throw friendly(notCase
       ? { message: `Expected Diffy comparison ${id} to show no changes, but ${result}% of the pages changed.`, cause: listChanges(diff), hint: report }
-      : { message: `Expected Diffy comparison ${id} to show changes, but Diffy found none.`, cause: 'the two screenshot sets are the same', hint: 'Check that the two sets were taken from different pages or environments.' }
-    ).message
-  );
+      : { message: `Expected Diffy comparison ${id} to show changes, but Diffy found none.`, cause: 'the two screenshot sets are the same', hint: 'Check that the two sets were taken from different pages or environments.' });
+  }
 });
 
 /**
@@ -532,14 +529,13 @@ Then(/^the diffy comparison should have at most "([^"]*)" percent of pages chang
   }
   const { id, diff } = await finishedDiff(this);
   const result = Number(diff.result) || 0;
-  assert.ok(
-    result <= max,
-    friendly({
+  if (result > max) {
+    throw friendly({
       message: `Expected at most ${max}% of the pages of Diffy comparison ${id} to change, but ${result}% changed.`,
       cause: listChanges(diff),
       hint: diff.diffSharedUrl ? `Report: ${diff.diffSharedUrl}` : undefined,
-    }).message
-  );
+    });
+  }
 });
 
 /**

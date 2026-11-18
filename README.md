@@ -146,7 +146,10 @@ A green first run prints every step, then the summary (the starter feature of
 scenario above, passed) and the HTML report it wrote:
 
 ```
-FIRSTRUN
+2 scenarios (2 passed)
+12 steps (12 passed)
+0m02.452s (executing steps: 0m02.417s)
+[webship-js] HTML report → …/diffy-tests/tests/reports/cucumber_report.html
 ```
 
 From there, copy the features of [`tests/features/`](tests/features/) (they

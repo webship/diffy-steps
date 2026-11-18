@@ -168,6 +168,7 @@ In CI, the `live` job of the workflow reads the secret `DIFFY_API_KEY` and the v
 | `npm run test:examples` | Checks docblocks, step patterns and features |
 | `npm run docs` / `npm run docs:check` | Write / check `docs/steps` |
 | `npm run test:dry` | `--dry-run`: undefined or ambiguous steps only |
+| `npm run test:paths` | Checks that a feature or a scenario named on the command line runs alone (`npx cucumber-js tests/features/01-example-demo.feature`, or `…feature:<line>` for one scenario) |
 | `npm run test:headed`, `test:chromium`, `test:firefox`, `test:webkit` | Choose how the browser runs |
 | `npm start` | Serve `examples/` on port 8080 |
 

@@ -1,3 +1,32 @@
+// A feature file, a scenario (file:line), a folder or a rerun file named on
+// the command line of cucumber-js runs alone: `npx cucumber-js
+// tests/features/login.feature`. cucumber-js 12 adds the paths of the command
+// line to the `paths` of this file instead of using them alone, so `paths` is
+// left empty when the command line names any, as in webship-js itself.
+const OPTIONS_WITH_A_VALUE = new Set([
+  '-c', '--config', '-f', '--format', '--format-options', '--i18n-keywords',
+  '-i', '--import', '-l', '--loader', '--language', '--name', '--order',
+  '-p', '--profile', '--parallel', '--plugin', '--plugin-options',
+  '-r', '--require', '--require-module', '--retry', '--retry-tag-filter',
+  '--shard', '-t', '--tags', '--world-parameters',
+]);
+
+function commandLinePaths() {
+  // Only when cucumber-js itself runs, not when another script reads this file.
+  if (!/cucumber(-js|\.js)?$/.test(String(process.argv[1] || ''))) return [];
+  const args = process.argv.slice(2);
+  const paths = [];
+  for (let i = 0; i < args.length; i += 1) {
+    if (args[i].startsWith('-')) {
+      if (OPTIONS_WITH_A_VALUE.has(args[i])) i += 1;
+    } else {
+      paths.push(args[i]);
+    }
+  }
+  return paths;
+}
+
+
 module.exports = {
   default: {
     timeout: 60000,
@@ -7,7 +36,10 @@ module.exports = {
       'tests/step-definitions/**/*.js',                         // This plugin's Diffy steps.
       'tests/support/**/*.js',                                  // Example site, mock Diffy API and lane hooks.
     ],
-    paths: ['tests/features/**/*.feature'],
+    // A feature or a scenario named on the command line runs alone:
+    // `npx cucumber-js tests/features/01-example-demo.feature:16`.
+    // FEATURES=tests/features/a.feature,tests/features/b.feature runs a subset too.
+    paths: process.env.FEATURES ? process.env.FEATURES.split(',') : (commandLinePaths().length ? [] : ['tests/features/**/*.feature']),
     // Two lanes run the same features. The mock lane (default) starts a local
     // mock of the Diffy API. The live lane (npm run test:live) sets
     // DIFFY_LANE=live and talks to the real API; scenarios that need the mock

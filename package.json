@@ -15,6 +15,7 @@
     "test": "cucumber-js --config cucumber.js",
     "test:dry": "cucumber-js --config cucumber.js --dry-run",
     "test:examples": "node tests/check-examples.js",
+    "test:paths": "node tests/check-paths.js",
     "test:unit": "node --test tests/unit/",
     "test:live": "node tests/run-live.js",
     "docs": "node tests/generate-docs.js",

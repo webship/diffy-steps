@@ -7,11 +7,13 @@
     "tests/step-definitions/diffy.steps.js",
     "tests/step-definitions/diffy-client.js",
     "tests/step-definitions/diffy-images.js",
+    "tests/features/*.feature",
     "README.md",
     "LICENSE"
   ],
   "scripts": {
     "start": "http-server examples -p 8080 -s",
+    "mock": "node tests/serve-mock.js",
     "test": "cucumber-js --config cucumber.js",
     "test:dry": "cucumber-js --config cucumber.js --dry-run",
     "test:examples": "node tests/check-examples.js",

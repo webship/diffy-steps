@@ -459,12 +459,12 @@ function createMock(options = {}) {
   // ------------------------------------------------------------ public API
 
   return {
-    /** Start listening on an ephemeral local port. Resolves with the API base URL. */
-    listen() {
+    /** Start listening on a local port (an ephemeral one by default). Resolves with the API base URL. */
+    listen(port = 0) {
       server = http.createServer(handle);
       return new Promise((resolve, reject) => {
         server.once('error', reject);
-        server.listen(0, '127.0.0.1', () => {
+        server.listen(port, '127.0.0.1', () => {
           host = `http://127.0.0.1:${server.address().port}`;
           resolve(`${host}/api/`);
         });

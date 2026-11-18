@@ -43,6 +43,134 @@ This repository's tests run in two lanes. Be clear about which one you rely on.
 
 No run against the real service has been made for this version. See [what the live lane needs](#the-live-lane).
 
+## From nothing to a green run
+
+What the machine needs: git and Node.js 20 or later with npm. No Diffy account:
+the first run talks to the mock of the Diffy API that this repository's own
+suite uses, started on its own.
+
+**1. The site and the Diffy API.** The example pages of this repository (a
+before and after pair, `examples/diffy/baseline.html` and `changed.html`) and the
+mock of the Diffy API, each in its own terminal:
+
+```bash
+git clone https://github.com/webship/diffy-steps.git
+cd diffy-steps
+npx http-server examples -p 8080 -s
+```
+
+```bash
+cd diffy-steps
+npm run mock
+```
+
+The pages answer at `http://localhost:8080`, and the mock prints
+`Mock Diffy API at http://127.0.0.1:8790/api/ (key "mock-key", project 1001)`.
+It needs no install (`node tests/serve-mock.js` is the same
+command), keeps everything in memory and compares the uploaded images pixel by
+pixel.
+
+**2. A test project**, in a third terminal:
+
+```bash
+mkdir diffy-tests && cd diffy-tests
+npm init -y
+npm install --save-dev webship-js @webship-js/diffy-steps
+npx init-webship-js
+```
+
+`npx init-webship-js` writes `cucumber.js`, `playwright.config.ts`, the
+`tests/` folders with a first feature and the `npm test` scripts, and installs
+Chromium. npm usually runs it already when it installs webship-js; a second run
+changes nothing.
+
+**3. `cucumber.js`.** Replace the file with the wiring of the pack: the step
+files of webship-js and of the pack, the address of the pages, and the Diffy
+settings of the mock. The suite needs no account of the site (see
+[Test users](#test-users)).
+
+```javascript
+module.exports = {
+  default: {
+    requireModule: ['tsx/cjs'],
+    require: [
+      'node_modules/webship-js/tests/step-definitions/**/*.js',
+      'node_modules/@webship-js/diffy-steps/tests/step-definitions/**/*.js',
+      'tests/step-definitions/**/*.js',
+    ],
+    paths: ['tests/features/**/*.feature'],
+    format: ['@cucumber/pretty-formatter', 'json:tests/reports/cucumber_report.json'],
+    worldParameters: {
+      launchUrl: process.env.LAUNCH_URL || 'http://localhost:8080',
+      // The waits webship-js adds around each page, scenario and step (milliseconds).
+      minWaitTime: { page: 3000, before_scenario: 0, after_scenario: 0, before_step: 0, after_step: 0 },
+      // The mock of `npm run mock`. For the real service, delete baseUrl, apiKey,
+      // projectId and pollInterval here and export DIFFY_API_KEY and DIFFY_PROJECT_ID.
+      diffy: {
+        baseUrl: 'http://127.0.0.1:8790/api/',
+        apiKey: 'mock-key',
+        projectId: 1001,
+        breakpoints: '640,1200',
+        pollInterval: 0.2,
+      },
+    },
+  },
+};
+```
+
+**4. A first feature**, `tests/features/first-run.feature`:
+
+```gherkin
+Feature: First run
+  Scenario: A changed page shows changes in the comparison
+    Given the diffy project is reachable
+    And I am on "/diffy/baseline.html"
+    When I take screenshots for all breakpoints
+    And send screenshots to diffy with name "first-run-baseline"
+    And I am on "/diffy/changed.html"
+    And I take screenshots for all breakpoints
+    And send screenshots to diffy with name "first-run-changed"
+    And create diffy comparison with name "first-run"
+    And wait for diffy comparison to complete
+    Then the diffy comparison should have changes
+```
+
+**5. Run it.**
+
+```bash
+npm test
+```
+
+A green first run prints every step, then the summary (the starter feature of
+`npx init-webship-js`, which checks the home page of the address, and the
+scenario above, passed) and the HTML report it wrote:
+
+```
+FIRSTRUN
+```
+
+From there, copy the features of [`tests/features/`](tests/features/) (they
+also ship in the package, under
+`node_modules/@webship-js/diffy-steps/tests/features/`): together they use every
+step of the pack. Against the mock they all pass; against the real service they
+need a project and, for some, environments Diffy can reach (see
+[The live lane](#the-live-lane)).
+
+### What the suite tests
+
+The features of this repository run every step of the pack, and CI runs them on
+every change against the mock of the Diffy API, with the unit tests of the mock
+and of the client: capturing full-page screenshots at a width and at every
+breakpoint, sending them as a screenshot set, uploading a folder of images,
+making Diffy capture a project environment or a custom address, waiting for the
+screenshots and for a comparison, comparing the last two sets, two named sets or
+two environments, making a set the baseline, and checking the result (changes or
+none, at most a share of the pages changed), with authentication, polling and
+the errors of the API. What the mock cannot prove about the real service is in
+[What is proven, and what needs a Diffy key](#what-is-proven-and-what-needs-a-diffy-key):
+the mock follows the same documents as the steps. A run leaves nothing: the mock
+keeps its sets and comparisons in memory.
+
 ## Installation
 
 ```bash
@@ -184,6 +312,7 @@ In CI, the `live` job of the workflow reads the secret `DIFFY_API_KEY` and the v
 | `npm run test:paths` | Checks that a feature or a scenario named on the command line runs alone (`npx cucumber-js tests/features/01-example-demo.feature`, or `…feature:<line>` for one scenario) |
 | `npm run test:headed`, `test:chromium`, `test:firefox`, `test:webkit` | Choose how the browser runs |
 | `npm start` | Serve `examples/` on port 8080 |
+| `npm run mock` | Serve the mock of the Diffy API on its own, at `http://127.0.0.1:8790/api/` (`DIFFY_MOCK_PORT` changes the port) |
 
 More: [deep reference and adoption walkthrough](tests/step-definitions/README.md).
 

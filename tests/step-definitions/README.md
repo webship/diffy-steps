@@ -30,7 +30,7 @@ Then:
    export DIFFY_PROJECT_ID="..."
    ```
 
-5. **Write a feature.** Start from `tests/features/01-example-demo.feature` of this repository, and begin with `Given the diffy project is reachable`: a wrong key or project id then fails before any capture, with a hint.
+5. **Write a feature.** Start from `tests/features/01-example-demo.feature` of this repository, and begin with `Given the visual comparison project is reachable`: a wrong key or project id then fails before any capture, with a hint.
 6. **Run** `npx cucumber-js --config cucumber.js --tags "@diffy"`.
 
 To remove the pack later: `npm uninstall @webship-js/diffy-steps`, delete its line from the `require` list of `cucumber.js`, and delete your Diffy features.
@@ -40,13 +40,13 @@ To remove the pack later: `npm uninstall @webship-js/diffy-steps`, delete its li
 A typical flow: on the main branch, keep the project's baseline up to date; on a pull request, let Diffy compare the baseline with the pull request's environment and fail the job when the result is not what you expect. Export the environment's address as `DIFFY_ENV2_URL` (and `DIFFY_COMMIT_SHA` for a GitHub check).
 
 ```gherkin
-Given the diffy project is reachable
-Then compare diffy "baseline" with "custom" with name "PR-42"
-And wait for diffy comparison to complete
-And the diffy comparison should have at most "2" percent of pages changed
+Given the visual comparison project is reachable
+Then visually compare "baseline" with "custom" with name "PR-42"
+And wait for the visual comparison to complete
+And the visual comparison should have at most "2" percent of pages changed
 ```
 
-To test a site Diffy cannot reach, capture it with Playwright instead (`take screenshots for all breakpoints`, `send screenshots to diffy with name "PR-42"`) and use `create diffy comparison` against an earlier set.
+To test a site Diffy cannot reach, capture it with Playwright instead (`take screenshots for all breakpoints`, `send the screenshots for visual comparison with name "PR-42"`) and use `create a visual comparison` against an earlier set.
 
 Diffy's own examples for several CI and hosting set-ups are in its [automation documentation](https://docs.diffy.website/automation/overview). Name comparisons after the pull request or ticket, and reuse the baseline screenshots instead of capturing production on every run.
 
@@ -82,7 +82,7 @@ When Diffy captures your site, its workers must be allowed through your CDN or f
 | `01-example-demo.feature` | The canonical flow on the bundled pages: a changed page has changes, the same page twice has none, a comparison uses the last two sets. |
 | `02-all-steps.feature` | Every step at least once, including the environment steps. |
 
-The scenarios run in both lanes. Tags control what the live lane skips: `project-environments` (the project's production and staging URLs), `remote-url` (two reachable addresses), `sets-baseline` (replaces the project's baseline). The pages are in `examples/diffy/`; the `changed` page differs on purpose.
+The scenarios run in both lanes. Tags control what the live lane skips: `project-environments` (the project's production and staging URLs), `remote-url` (two reachable addresses), `sets-baseline` (replaces the project's baseline). The pages are in `examples/pages/`; the `changed` page differs on purpose.
 
 ## Diffy links
 

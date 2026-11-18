@@ -9,9 +9,9 @@ Step definitions for visual-regression testing with [Diffy](https://diffy.websit
 ```gherkin
 Given I am on "/"
 Then I take screenshots for all breakpoints
-And send screenshots to diffy with name "release-1.4"
-Then create diffy comparison with name "release-1.4 against 1.3"
-And the diffy comparison should have at most "0" percent of pages changed
+And send the screenshots for visual comparison with name "release-1.4"
+Then create a visual comparison with name "release-1.4 against 1.3"
+And the visual comparison should have at most "0" percent of pages changed
 ```
 
 The pack is a plugin: it does not run on its own, and it needs a webship-js 2.x test project. It uses the Diffy REST API as documented in the [Diffy Swagger](https://app.diffy.website/rest) and has no dependency of its own (Node.js 20 or later).
@@ -50,7 +50,7 @@ the first run talks to the mock of the Diffy API that this repository's own
 suite uses, started on its own.
 
 **1. The site and the Diffy API.** The example pages of this repository (a
-before and after pair, `examples/diffy/baseline.html` and `changed.html`) and the
+before and after pair, `examples/pages/baseline.html` and `changed.html`) and the
 mock of the Diffy API, each in its own terminal:
 
 ```bash
@@ -123,16 +123,16 @@ module.exports = {
 ```gherkin
 Feature: First run
   Scenario: A changed page shows changes in the comparison
-    Given the diffy project is reachable
-    And I am on "/diffy/baseline.html"
+    Given the visual comparison project is reachable
+    And I am on "/pages/baseline.html"
     When I take screenshots for all breakpoints
-    And send screenshots to diffy with name "first-run-baseline"
-    And I am on "/diffy/changed.html"
+    And send the screenshots for visual comparison with name "first-run-baseline"
+    And I am on "/pages/changed.html"
     And I take screenshots for all breakpoints
-    And send screenshots to diffy with name "first-run-changed"
-    And create diffy comparison with name "first-run"
-    And wait for diffy comparison to complete
-    Then the diffy comparison should have changes
+    And send the screenshots for visual comparison with name "first-run-changed"
+    And create a visual comparison with name "first-run"
+    And wait for the visual comparison to complete
+    Then the visual comparison should have changes
 ```
 
 **5. Run it.**
@@ -217,7 +217,7 @@ Settings resolve in this order: `DIFFY_*` environment variables, then `worldPara
 | `DIFFY_REQUEST_TIMEOUT` | Seconds one API call may take | `120` |
 | `DIFFY_FUNCTIONAL_TEST` | Upload screenshots as functional-test uploads, so their pages need not be in the project's URL list. Use `false` to require them | `true` |
 | `DIFFY_COMMIT_SHA` | Commit SHA sent with an environment comparison (GitHub check) | *unset* |
-| `DIFFY_ENV1_URL`, `DIFFY_ENV2_URL` | Address of a `custom` environment; `DIFFY_ENV1_URL` is also the address for `create diffy screenshot from "custom" environment` | *unset* |
+| `DIFFY_ENV1_URL`, `DIFFY_ENV2_URL` | Address of a `custom` environment; `DIFFY_ENV1_URL` is also the address for `create a visual screenshot from the "custom" environment` | *unset* |
 | `DIFFY_ENV1_USER`, `DIFFY_ENV1_PASS`, `DIFFY_ENV2_USER`, `DIFFY_ENV2_PASS` | Basic-authentication login of a `custom` environment | *unset* |
 
 ## Test users
@@ -242,26 +242,46 @@ Every step has a page in [docs/steps](docs/README.md) with its description, patt
 | `When I resize window to "<width>"` | none (browser viewport) |
 | `Then I take screenshot` | none (full-page capture, kept until it is sent) |
 | `Then I take screenshots for all breakpoints` | none (one capture per `DIFFY_BREAKPOINTS` width) |
-| `Then send screenshots to diffy with name "<name>"` | `POST projects/{id}/create-custom-snapshot` |
-| `Then upload folder "<path>" to diffy as "<name>"` | `POST projects/{id}/create-custom-snapshot` |
-| `Then create diffy screenshot from "<environment>" environment` | `POST projects/{id}/screenshots` |
-| `Then create diffy screenshot from the custom environment "<url>"` | `POST projects/{id}/screenshots` |
-| `Then wait for diffy screenshots to complete` | `GET snapshots/{id}` (polling) |
-| `Then create diffy comparison` | `POST projects/{id}/diffs` |
-| `Then create diffy comparison with name "<name>"` | `POST projects/{id}/diffs` |
-| `Then compare diffy "<env1>" with "<env2>"` (optional `with name "<name>"`) | `POST projects/{id}/compare` |
-| `Then wait for diffy comparison to complete` | `GET diffs/{id}` (polling) |
-| `Then the diffy comparison should (not) have changes` | `GET diffs/{id}` |
-| `Then the diffy comparison should have at most "<n>" percent of pages changed` | `GET diffs/{id}` |
-| `Then set the last diffy screenshots as the baseline` | `PUT projects/{id}/set-base-line-set/{id}` |
-| `Then the diffy project should be reachable` | `GET projects/{id}` |
+| `Then send the screenshots for visual comparison with name "<name>"` | `POST projects/{id}/create-custom-snapshot` |
+| `Then upload the folder "<path>" for visual comparison as "<name>"` | `POST projects/{id}/create-custom-snapshot` |
+| `Then create a visual screenshot from the "<environment>" environment` | `POST projects/{id}/screenshots` |
+| `Then create a visual screenshot from the custom environment "<url>"` | `POST projects/{id}/screenshots` |
+| `Then wait for the visual screenshots to complete` | `GET snapshots/{id}` (polling) |
+| `Then create a visual comparison` | `POST projects/{id}/diffs` |
+| `Then create a visual comparison with name "<name>"` | `POST projects/{id}/diffs` |
+| `Then visually compare "<env1>" with "<env2>"` (optional `with name "<name>"`) | `POST projects/{id}/compare` |
+| `Then wait for the visual comparison to complete` | `GET diffs/{id}` (polling) |
+| `Then the visual comparison should (not) have changes` | `GET diffs/{id}` |
+| `Then the visual comparison should have at most "<n>" percent of pages changed` | `GET diffs/{id}` |
+| `Then set the last visual screenshots as the baseline` | `PUT projects/{id}/set-base-line-set/{id}` |
+| `Then the visual comparison project should be reachable` | `GET projects/{id}` |
 
 Authentication is `POST auth/key` with the API key; its token is sent as a bearer token on every other call.
 
+### Earlier wording (deprecated)
+
+The steps used to name the service in their wording. They read "visual comparison" now; the earlier wording still works for one more release, runs the same step and prints, once per run, the wording that replaces it:
+
+| Earlier wording (deprecated) | Now |
+| --- | --- |
+| `send screenshots to diffy with name "<name>"` | `send the screenshots for visual comparison with name "<name>"` |
+| `upload folder "<path>" to diffy as "<name>"` | `upload the folder "<path>" for visual comparison as "<name>"` |
+| `create diffy screenshot from "<environment>" environment` | `create a visual screenshot from the "<environment>" environment` |
+| `create diffy screenshot from the custom environment "<url>"` | `create a visual screenshot from the custom environment "<url>"` |
+| `wait for diffy screenshots to complete` | `wait for the visual screenshots to complete` |
+| `create diffy comparison` | `create a visual comparison` |
+| `create diffy comparison with name "<name>"` | `create a visual comparison with name "<name>"` |
+| `compare diffy "<env1>" with "<env2>"` | `visually compare "<env1>" with "<env2>"` |
+| `wait for diffy comparison to complete` | `wait for the visual comparison to complete` |
+| `the diffy comparison should (not) have changes` | `the visual comparison should (not) have changes` |
+| `the diffy comparison should have at most "<n>" percent of pages changed` | `the visual comparison should have at most "<n>" percent of pages changed` |
+| `set the last diffy screenshots as the baseline` | `set the last visual screenshots as the baseline` |
+| `the diffy project is reachable` / `should be reachable` | `the visual comparison project is reachable` / `should be reachable` |
+
 ### Two ways to get a screenshot set
 
-- **Capture with Playwright** (`take screenshot`, then `send screenshots to diffy`, or `upload folder`). Your site does not need to be reachable from Diffy, which makes it the way to test a local, private or pre-release site. Rendering is done by your browser, not by Diffy.
-- **Let Diffy capture** (`create diffy screenshot from ... environment`, `compare diffy ... with ...`). Diffy renders the project's pages from the project's environment URLs or from a `custom` address; the site must be reachable from Diffy (see [Diffy's allow-list](https://docs.diffy.website/features/welcome)).
+- **Capture with Playwright** (`take screenshot`, then `send the screenshots for visual comparison`, or `upload the folder`). Your site does not need to be reachable from Diffy, which makes it the way to test a local, private or pre-release site. Rendering is done by your browser, not by Diffy.
+- **Let Diffy capture** (`create a visual screenshot from the ... environment`, `visually compare ... with ...`). Diffy renders the project's pages from the project's environment URLs or from a `custom` address; the site must be reachable from Diffy (see [Diffy's allow-list](https://docs.diffy.website/features/welcome)).
 
 ### Errors
 
@@ -321,7 +341,7 @@ More: [deep reference and adoption walkthrough](tests/step-definitions/README.md
 
 ## Example pages
 
-`examples/diffy/baseline.html` and `examples/diffy/changed.html` are a deliberate before and after pair: the changed page shifts the palette, adds a badge and a section, and alters the pricing, so a comparison has real differences to report. `examples/diffy/index.html` links both.
+`examples/pages/baseline.html` and `examples/pages/changed.html` are a deliberate before and after pair: the changed page shifts the palette, adds a badge and a section, and alters the pricing, so a comparison has real differences to report. `examples/pages/index.html` links both.
 
 ## Contributing
 

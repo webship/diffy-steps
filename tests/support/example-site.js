@@ -26,7 +26,7 @@ function target() {
 
 function serves(host, port) {
   return new Promise((resolve) => {
-    const req = http.get({ host, port, path: '/diffy/baseline.html', timeout: 1500 }, (res) => {
+    const req = http.get({ host, port, path: '/pages/baseline.html', timeout: 1500 }, (res) => {
       res.resume();
       resolve(res.statusCode === 200);
     });

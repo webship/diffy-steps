@@ -1,4 +1,4 @@
-# Then wait for diffy comparison to complete
+# Then wait for the visual comparison to complete
 
 > Generated from the docblock of the step in `tests/step-definitions/diffy.steps.js`. Edit the docblock and run `npm run docs`.
 
@@ -13,17 +13,17 @@ GET diffs/{id} (polling)
 ## Gherkin step pattern
 
 ```
-/^(I |we )*wait for diffy comparison to complete$/
+/^(I |we )*wait for (?:the )?visual comparison to complete$/
 ```
 
 ## Examples
 
 ```gherkin
-Then wait for diffy comparison to complete
-And wait for diffy comparison to complete
-Then I wait for diffy comparison to complete
-Then we wait for diffy comparison to complete
-And I wait for diffy comparison to complete
-And we wait for diffy comparison to complete
-But I wait for diffy comparison to complete
+Then wait for the visual comparison to complete
+And wait for the visual comparison to complete
+Then I wait for the visual comparison to complete
+Then we wait for the visual comparison to complete
+And I wait for the visual comparison to complete
+And we wait for the visual comparison to complete
+But I wait for the visual comparison to complete
 ```

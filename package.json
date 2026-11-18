@@ -8,6 +8,7 @@
     "tests/step-definitions/diffy-client.js",
     "tests/step-definitions/diffy-images.js",
     "tests/features/*.feature",
+    "tests/fixtures/images/**",
     "README.md",
     "LICENSE"
   ],

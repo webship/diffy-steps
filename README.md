@@ -112,6 +112,9 @@ module.exports = {
         projectId: 1001,
         breakpoints: '640,1200',
         pollInterval: 0.2,
+        // The two addresses the "custom" environment steps hand to Diffy (the mock does not open them).
+        env1Url: 'https://www.example.org',
+        env2Url: 'https://stage.example.org',
       },
     },
   },
@@ -152,10 +155,10 @@ scenario above, passed) and the HTML report it wrote:
 [webship-js] HTML report → …/diffy-tests/tests/reports/cucumber_report.html
 ```
 
-From there, copy the features of [`tests/features/`](tests/features/) (they
-also ship in the package, under
-`node_modules/@webship-js/diffy-steps/tests/features/`): together they use every
-step of the pack. Against the mock they all pass; against the real service they
+From there, copy the features of [`tests/features/`](tests/features/) and the
+images of [`tests/fixtures/images/`](tests/fixtures/images/) the folder upload
+reads (both ship in the package, under `node_modules/@webship-js/diffy-steps/tests/`):
+together they use every step of the pack. Against the mock they all pass; against the real service they
 need a project and, for some, environments Diffy can reach (see
 [The live lane](#the-live-lane)).
 

@@ -89,6 +89,19 @@ Settings resolve in this order: `DIFFY_*` environment variables, then `worldPara
 | `DIFFY_ENV1_URL`, `DIFFY_ENV2_URL` | Address of a `custom` environment; `DIFFY_ENV1_URL` is also the address for `create diffy screenshot from "custom" environment` | *unset* |
 | `DIFFY_ENV1_USER`, `DIFFY_ENV1_PASS`, `DIFFY_ENV2_USER`, `DIFFY_ENV2_PASS` | Basic-authentication login of a `custom` environment | *unset* |
 
+## Test users
+
+None. The suite captures the example pages of this repository (`examples/`),
+which have no sign-in, and `cucumber.js` lists no accounts (its
+`worldParameters` has no `users`); no scenario signs in. Diffy itself is
+reached with an API key (`DIFFY_API_KEY`), not with an account the suite signs
+in with, and the mock lane needs no key at all. The JSON of the accounts is
+empty:
+
+```json
+{}
+```
+
 ## Steps
 
 Every step has a page in [docs/steps](docs/README.md) with its description, pattern and examples. The pronouns `I` and `we` are optional in steps that act (`I take screenshot`, `we take screenshot` and `take screenshot` are the same step).

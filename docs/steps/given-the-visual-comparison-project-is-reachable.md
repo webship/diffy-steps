@@ -1,4 +1,4 @@
-# Given the diffy project is reachable
+# Given the visual comparison project is reachable
 
 > Generated from the docblock of the step in `tests/step-definitions/diffy.steps.js`. Edit the docblock and run `npm run docs`.
 
@@ -13,15 +13,15 @@ GET projects/{id}
 ## Gherkin step pattern
 
 ```
-/^the diffy project (?:is|should be) reachable$/
+/^the visual comparison project (?:is|should be) reachable$/
 ```
 
 ## Examples
 
 ```gherkin
-Given the diffy project is reachable
-Then the diffy project should be reachable
-And the diffy project is reachable
-And the diffy project should be reachable
-But the diffy project is reachable
+Given the visual comparison project is reachable
+Then the visual comparison project should be reachable
+And the visual comparison project is reachable
+And the visual comparison project should be reachable
+But the visual comparison project is reachable
 ```

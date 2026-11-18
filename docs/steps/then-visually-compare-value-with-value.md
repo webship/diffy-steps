@@ -1,4 +1,4 @@
-# Then compare diffy "<value>" with "<value>"
+# Then visually compare "<value>" with "<value>"
 
 > Generated from the docblock of the step in `tests/step-definitions/diffy.steps.js`. Edit the docblock and run `npm run docs`.
 
@@ -13,18 +13,18 @@ POST projects/{id}/compare
 ## Gherkin step pattern
 
 ```
-/^(I |we )*compare diffy "([^"]*)" with "([^"]*)"(?: with name "([^"]*)")?$/
+/^(I |we )*visually compare "([^"]*)" with "([^"]*)"(?: with name "([^"]*)")?$/
 ```
 
 ## Examples
 
 ```gherkin
-Then compare diffy "prod" with "stage"
-Then compare diffy "production" with "staging"
-Then compare diffy "prod" with "dev"
-Then compare diffy "stage" with "dev" with name "release-2.0"
-Then compare diffy "prod" with "baseline"
-Then compare diffy "baseline" with "custom"
-Then compare diffy "custom" with "custom"
-Then compare diffy "production" with "development"
+Then visually compare "prod" with "stage"
+Then visually compare "production" with "staging"
+Then visually compare "prod" with "dev"
+Then visually compare "stage" with "dev" with name "release-2.0"
+Then visually compare "prod" with "baseline"
+Then visually compare "baseline" with "custom"
+Then visually compare "custom" with "custom"
+Then visually compare "production" with "development"
 ```

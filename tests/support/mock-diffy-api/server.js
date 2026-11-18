@@ -44,7 +44,7 @@ function defaultProject() {
   return {
     id: 1001,
     name: 'Example project',
-    urls: ['/', '/diffy/baseline.html', '/diffy/changed.html'],
+    urls: ['/', '/pages/baseline.html', '/pages/changed.html'],
     breakpoints: [640, 1200],
     production: 'https://www.example.org',
     staging: 'https://stage.example.org',

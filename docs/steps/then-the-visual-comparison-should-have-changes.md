@@ -1,4 +1,4 @@
-# Then the diffy comparison should have changes
+# Then the visual comparison should have changes
 
 > Generated from the docblock of the step in `tests/step-definitions/diffy.steps.js`. Edit the docblock and run `npm run docs`.
 
@@ -13,15 +13,15 @@ GET diffs/{id}
 ## Gherkin step pattern
 
 ```
-/^the diffy comparison should( not)* have changes$/
+/^the visual comparison should( not)* have changes$/
 ```
 
 ## Examples
 
 ```gherkin
-Then the diffy comparison should have changes
-And the diffy comparison should have changes
-Then the diffy comparison should not have changes
-And the diffy comparison should not have changes
-But the diffy comparison should not have changes
+Then the visual comparison should have changes
+And the visual comparison should have changes
+Then the visual comparison should not have changes
+And the visual comparison should not have changes
+But the visual comparison should not have changes
 ```

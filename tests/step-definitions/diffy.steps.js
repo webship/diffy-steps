@@ -37,6 +37,9 @@ const { friendly, smartSettle } = require('webship-js/tests/step-definitions/web
 const { DiffyClient, resolveConfig, summarize, changedPages } = require('./diffy-client');
 const { collectFolderImages } = require('./diffy-images');
 
+// The step functions, also called by the deprecated wording at the end of the file.
+const handlers = {};
+
 /**
  * The path of the current page as Diffy files it: relative to the launch URL.
  *
@@ -121,7 +124,7 @@ function screenshotIds(world, needed) {
       message: needed === 1
         ? 'No Diffy screenshot set exists yet in this scenario.'
         : `A comparison needs two Diffy screenshot sets, and this scenario has ${ids.length}.`,
-      hint: 'Create them first with "send screenshots to diffy with name ...", "upload folder ... to diffy as ..." or "create diffy screenshot from ... environment".',
+      hint: 'Create them first with "send the screenshots for visual comparison with name ...", "upload the folder ... for visual comparison as ..." or "create a visual screenshot from the ... environment".',
     });
   }
   return ids;
@@ -139,7 +142,7 @@ async function finishedDiff(world) {
   if (!ids.length) {
     throw friendly({
       message: 'No Diffy comparison has been created in this scenario.',
-      hint: 'Create one first with "create diffy comparison" or "compare diffy ... with ...".',
+      hint: 'Create one first with "create a visual comparison" or "visually compare ... with ...".',
     });
   }
   const id = ids[ids.length - 1];
@@ -259,15 +262,15 @@ Then(/^(I |we )*take screenshots for all breakpoints$/, async function (pronounC
  *
  * Diffy API: POST projects/{id}/create-custom-snapshot (multipart), and PUT snapshots/{id} for batches after the first ten images
  *
- * Example #1: Then send screenshots to diffy with name "baseline"
- * Example #2: Then send screenshots to diffy with name "changed"
- * Example #3: Then send screenshots to diffy with name "homepage-release-2.0"
- * Example #4: Then send screenshots to diffy with name "after-deploy"
- * Example #5: Then send screenshots to diffy with name "smoke-run"
- * Example #6: Then send screenshots to diffy with name "webship.co-prod"
+ * Example #1: Then send the screenshots for visual comparison with name "baseline"
+ * Example #2: Then send the screenshots for visual comparison with name "changed"
+ * Example #3: Then send the screenshots for visual comparison with name "homepage-release-2.0"
+ * Example #4: Then send the screenshots for visual comparison with name "after-deploy"
+ * Example #5: Then send the screenshots for visual comparison with name "smoke-run"
+ * Example #6: Then send the screenshots for visual comparison with name "webship.co-prod"
  *
  */
-Then(/^(I |we )*send screenshots to diffy with name "([^"]*)"$/, async function (pronounCase, snapshotName) {
+Then(/^(I |we )*send (?:the )?screenshots for visual comparison with name "([^"]*)"$/, handlers.send = async function (pronounCase, snapshotName) {
   if (!this.diffyScreenshots.length) {
     throw friendly({
       message: 'There are no captured screenshots to send.',
@@ -286,16 +289,16 @@ Then(/^(I |we )*send screenshots to diffy with name "([^"]*)"$/, async function 
  *
  * Diffy API: POST projects/{id}/diffs
  *
- * Example #1: Then create diffy comparison
- * Example #2: And create diffy comparison
- * Example #3: Then I create diffy comparison
- * Example #4: Then we create diffy comparison
- * Example #5: And I create diffy comparison
- * Example #6: And we create diffy comparison
- * Example #7: But I create diffy comparison
+ * Example #1: Then create a visual comparison
+ * Example #2: And create a visual comparison
+ * Example #3: Then I create a visual comparison
+ * Example #4: Then we create a visual comparison
+ * Example #5: And I create a visual comparison
+ * Example #6: And we create a visual comparison
+ * Example #7: But I create a visual comparison
  *
  */
-Then(/^(I |we )*create diffy comparison$/, async function (pronounCase) {
+Then(/^(I |we )*create (?:a )?visual comparison$/, handlers.compare = async function (pronounCase) {
   const ids = screenshotIds(this, 2);
   this.diffyCreatedDiffIds.push(await this.diffy.createDiff(ids[ids.length - 2], ids[ids.length - 1]));
 });
@@ -306,15 +309,15 @@ Then(/^(I |we )*create diffy comparison$/, async function (pronounCase) {
  *
  * Diffy API: POST projects/{id}/diffs
  *
- * Example #1: Then create diffy comparison with name "release-2.0"
- * Example #2: Then create diffy comparison with name "nightly"
- * Example #3: Then create diffy comparison with name "smoke-run-42"
- * Example #4: Then create diffy comparison with name "webship.co-regression"
- * Example #5: Then create diffy comparison with name "before-vs-after"
- * Example #6: Then create diffy comparison with name "homepage-baseline-vs-changed"
+ * Example #1: Then create a visual comparison with name "release-2.0"
+ * Example #2: Then create a visual comparison with name "nightly"
+ * Example #3: Then create a visual comparison with name "smoke-run-42"
+ * Example #4: Then create a visual comparison with name "webship.co-regression"
+ * Example #5: Then create a visual comparison with name "before-vs-after"
+ * Example #6: Then create a visual comparison with name "homepage-baseline-vs-changed"
  *
  */
-Then(/^(I |we )*create diffy comparison with name "([^"]*)"$/, async function (pronounCase, name) {
+Then(/^(I |we )*create (?:a )?visual comparison with name "([^"]*)"$/, handlers.compareNamed = async function (pronounCase, name) {
   const ids = screenshotIds(this, 2);
   this.diffyCreatedDiffIds.push(await this.diffy.createDiff(ids[ids.length - 2], ids[ids.length - 1], name));
 });
@@ -326,16 +329,16 @@ Then(/^(I |we )*create diffy comparison with name "([^"]*)"$/, async function (p
  *
  * Diffy API: POST projects/{id}/screenshots
  *
- * Example #1: Then create diffy screenshot from "production" environment
- * Example #2: Then create diffy screenshot from "prod" environment
- * Example #3: Then create diffy screenshot from "staging" environment
- * Example #4: Then create diffy screenshot from "stage" environment
- * Example #5: Then create diffy screenshot from "development" environment
- * Example #6: Then create diffy screenshot from "dev" environment
- * Example #7: Then create diffy screenshot from "custom" environment
+ * Example #1: Then create a visual screenshot from the "production" environment
+ * Example #2: Then create a visual screenshot from the "prod" environment
+ * Example #3: Then create a visual screenshot from the "staging" environment
+ * Example #4: Then create a visual screenshot from the "stage" environment
+ * Example #5: Then create a visual screenshot from the "development" environment
+ * Example #6: Then create a visual screenshot from the "dev" environment
+ * Example #7: Then create a visual screenshot from the "custom" environment
  *
  */
-Then(/^(I |we )*create diffy screenshot from "([^"]*)" environment$/, async function (pronounCase, environment) {
+Then(/^(I |we )*create (?:a )?visual screenshot from (?:the )?"([^"]*)" environment$/, handlers.environmentScreenshot = async function (pronounCase, environment) {
   const id = await this.diffy.createScreenshot(environment, this.diffyConfig.env1Url);
   this.diffyCreatedScreenshotIds.push(id);
 });
@@ -346,14 +349,14 @@ Then(/^(I |we )*create diffy screenshot from "([^"]*)" environment$/, async func
  *
  * Diffy API: POST projects/{id}/screenshots
  *
- * Example #1: Then create diffy screenshot from the custom environment "https://stage.example.org"
- * Example #2: And create diffy screenshot from the custom environment "https://www.un.org"
- * Example #3: Then I create diffy screenshot from the custom environment "https://pr-42.example.org"
- * Example #4: Then we create diffy screenshot from the custom environment "https://example.org"
- * Example #5: But I create diffy screenshot from the custom environment "https://example.net"
+ * Example #1: Then create a visual screenshot from the custom environment "https://stage.example.org"
+ * Example #2: And create a visual screenshot from the custom environment "https://www.un.org"
+ * Example #3: Then I create a visual screenshot from the custom environment "https://pr-42.example.org"
+ * Example #4: Then we create a visual screenshot from the custom environment "https://example.org"
+ * Example #5: But I create a visual screenshot from the custom environment "https://example.net"
  *
  */
-Then(/^(I |we )*create diffy screenshot from the custom environment "([^"]*)"$/, async function (pronounCase, url) {
+Then(/^(I |we )*create (?:a )?visual screenshot from the custom environment "([^"]*)"$/, handlers.customScreenshot = async function (pronounCase, url) {
   const id = await this.diffy.createScreenshot('custom', url);
   this.diffyCreatedScreenshotIds.push(id);
 });
@@ -368,17 +371,17 @@ Then(/^(I |we )*create diffy screenshot from the custom environment "([^"]*)"$/,
  *
  * Diffy API: POST projects/{id}/compare
  *
- * Example #1: Then compare diffy "prod" with "stage"
- * Example #2: Then compare diffy "production" with "staging"
- * Example #3: Then compare diffy "prod" with "dev"
- * Example #4: Then compare diffy "stage" with "dev" with name "release-2.0"
- * Example #5: Then compare diffy "prod" with "baseline"
- * Example #6: Then compare diffy "baseline" with "custom"
- * Example #7: Then compare diffy "custom" with "custom"
- * Example #8: Then compare diffy "production" with "development"
+ * Example #1: Then visually compare "prod" with "stage"
+ * Example #2: Then visually compare "production" with "staging"
+ * Example #3: Then visually compare "prod" with "dev"
+ * Example #4: Then visually compare "stage" with "dev" with name "release-2.0"
+ * Example #5: Then visually compare "prod" with "baseline"
+ * Example #6: Then visually compare "baseline" with "custom"
+ * Example #7: Then visually compare "custom" with "custom"
+ * Example #8: Then visually compare "production" with "development"
  *
  */
-Then(/^(I |we )*compare diffy "([^"]*)" with "([^"]*)"(?: with name "([^"]*)")?$/, async function (pronounCase, env1, env2, name) {
+Then(/^(I |we )*visually compare "([^"]*)" with "([^"]*)"(?: with name "([^"]*)")?$/, handlers.compareEnvironments = async function (pronounCase, env1, env2, name) {
   const cfg = this.diffyConfig;
   const id = await this.diffy.compare(env1, env2, {
     name,
@@ -401,15 +404,15 @@ Then(/^(I |we )*compare diffy "([^"]*)" with "([^"]*)"(?: with name "([^"]*)")?$
  *
  * Diffy API: POST projects/{id}/create-custom-snapshot (multipart), and PUT snapshots/{id} for batches after the first ten images
  *
- * Example #1: Then upload folder "./screenshots/baseline" to diffy as "baseline"
- * Example #2: Then upload folder "./screenshots/changed" to diffy as "changed"
- * Example #3: Then upload folder "./reports/screenshots" to diffy as "nightly"
- * Example #4: Then upload folder "/tmp/webship-shots" to diffy as "webship.co-snapshot"
- * Example #5: Then upload folder "./out/homepage" to diffy as "homepage-release-2.0"
- * Example #6: Then upload folder "./diffy/before" to diffy as "before-deploy"
+ * Example #1: Then upload the folder "./screenshots/baseline" for visual comparison as "baseline"
+ * Example #2: Then upload the folder "./screenshots/changed" for visual comparison as "changed"
+ * Example #3: Then upload the folder "./reports/screenshots" for visual comparison as "nightly"
+ * Example #4: Then upload the folder "/tmp/webship-shots" for visual comparison as "webship.co-snapshot"
+ * Example #5: Then upload the folder "./out/homepage" for visual comparison as "homepage-release-2.0"
+ * Example #6: Then upload the folder "./visual/before" for visual comparison as "before-deploy"
  *
  */
-Then(/^(I |we )*upload folder "([^"]*)" to diffy as "([^"]*)"$/, async function (pronounCase, folderPath, snapshotName) {
+Then(/^(I |we )*upload (?:the )?folder "([^"]*)" for visual comparison as "([^"]*)"$/, handlers.uploadFolder = async function (pronounCase, folderPath, snapshotName) {
   let images;
   try {
     images = collectFolderImages(folderPath);
@@ -434,21 +437,21 @@ Then(/^(I |we )*upload folder "([^"]*)" to diffy as "([^"]*)"$/, async function 
  *
  * Diffy API: GET diffs/{id} (polling)
  *
- * Example #1: Then wait for diffy comparison to complete
- * Example #2: And wait for diffy comparison to complete
- * Example #3: Then I wait for diffy comparison to complete
- * Example #4: Then we wait for diffy comparison to complete
- * Example #5: And I wait for diffy comparison to complete
- * Example #6: And we wait for diffy comparison to complete
- * Example #7: But I wait for diffy comparison to complete
+ * Example #1: Then wait for the visual comparison to complete
+ * Example #2: And wait for the visual comparison to complete
+ * Example #3: Then I wait for the visual comparison to complete
+ * Example #4: Then we wait for the visual comparison to complete
+ * Example #5: And I wait for the visual comparison to complete
+ * Example #6: And we wait for the visual comparison to complete
+ * Example #7: But I wait for the visual comparison to complete
  *
  */
-Then(/^(I |we )*wait for diffy comparison to complete$/, { timeout: -1 }, async function (pronounCase) {
+Then(/^(I |we )*wait for (?:the )?visual comparison to complete$/, { timeout: -1 }, handlers.waitComparison = async function (pronounCase) {
   const ids = this.diffyCreatedDiffIds;
   if (!ids.length) {
     throw friendly({
       message: 'No Diffy comparison has been created in this scenario.',
-      hint: 'Create one first with "create diffy comparison" or "compare diffy ... with ...".',
+      hint: 'Create one first with "create a visual comparison" or "visually compare ... with ...".',
     });
   }
   const id = ids[ids.length - 1];
@@ -460,21 +463,21 @@ Then(/^(I |we )*wait for diffy comparison to complete$/, { timeout: -1 }, async 
 
 /**
  * Wait until the last screenshot set of this scenario is complete in Diffy.
- * Needed after "create diffy screenshot from ... environment", which only
+ * Needed after "create a visual screenshot from the ... environment", which only
  * starts the capture; an uploaded set needs no waiting for. It polls every
  * DIFFY_POLL_INTERVAL seconds, for at most DIFFY_MAX_WAIT seconds.
  *
  * Diffy API: GET snapshots/{id} (polling)
  *
- * Example #1: Then wait for diffy screenshots to complete
- * Example #2: And wait for diffy screenshots to complete
- * Example #3: Then I wait for diffy screenshots to complete
- * Example #4: Then we wait for diffy screenshots to complete
- * Example #5: And I wait for diffy screenshots to complete
- * Example #6: But we wait for diffy screenshots to complete
+ * Example #1: Then wait for the visual screenshots to complete
+ * Example #2: And wait for the visual screenshots to complete
+ * Example #3: Then I wait for the visual screenshots to complete
+ * Example #4: Then we wait for the visual screenshots to complete
+ * Example #5: And I wait for the visual screenshots to complete
+ * Example #6: But we wait for the visual screenshots to complete
  *
  */
-Then(/^(I |we )*wait for diffy screenshots to complete$/, { timeout: -1 }, async function (pronounCase) {
+Then(/^(I |we )*wait for (?:the )?visual screenshots to complete$/, { timeout: -1 }, handlers.waitScreenshots = async function (pronounCase) {
   const ids = screenshotIds(this, 1);
   const id = ids[ids.length - 1];
   const screenshot = await this.diffy.waitForScreenshot(id);
@@ -489,14 +492,14 @@ Then(/^(I |we )*wait for diffy screenshots to complete$/, { timeout: -1 }, async
  *
  * Diffy API: GET diffs/{id}
  *
- * Example #1: Then the diffy comparison should have changes
- * Example #2: And the diffy comparison should have changes
- * Example #3: Then the diffy comparison should not have changes
- * Example #4: And the diffy comparison should not have changes
- * Example #5: But the diffy comparison should not have changes
+ * Example #1: Then the visual comparison should have changes
+ * Example #2: And the visual comparison should have changes
+ * Example #3: Then the visual comparison should not have changes
+ * Example #4: And the visual comparison should not have changes
+ * Example #5: But the visual comparison should not have changes
  *
  */
-Then(/^the diffy comparison should( not)* have changes$/, { timeout: -1 }, async function (notCase) {
+Then(/^the visual comparison should( not)* have changes$/, { timeout: -1 }, handlers.changes = async function (notCase) {
   const { id, diff } = await finishedDiff(this);
   const result = Number(diff.result) || 0;
   const changed = result > 0 || changedPages(diff).length > 0;
@@ -515,14 +518,14 @@ Then(/^the diffy comparison should( not)* have changes$/, { timeout: -1 }, async
  *
  * Diffy API: GET diffs/{id}
  *
- * Example #1: Then the diffy comparison should have at most "0" percent of pages changed
- * Example #2: And the diffy comparison should have at most "5" percent of pages changed
- * Example #3: Then the diffy comparison should have at most "10" percent of pages changed
- * Example #4: And the diffy comparison should have at most "25" percent of pages changed
- * Example #5: Then the diffy comparison should have at most "100" percent of pages changed
+ * Example #1: Then the visual comparison should have at most "0" percent of pages changed
+ * Example #2: And the visual comparison should have at most "5" percent of pages changed
+ * Example #3: Then the visual comparison should have at most "10" percent of pages changed
+ * Example #4: And the visual comparison should have at most "25" percent of pages changed
+ * Example #5: Then the visual comparison should have at most "100" percent of pages changed
  *
  */
-Then(/^the diffy comparison should have at most "([^"]*)" percent of pages changed$/, { timeout: -1 }, async function (limit) {
+Then(/^the visual comparison should have at most "([^"]*)" percent of pages changed$/, { timeout: -1 }, handlers.percent = async function (limit) {
   const max = Number(limit);
   if (!/^\d+(\.\d+)?$/.test(limit.trim()) || max > 100) {
     throw friendly({ message: `"${limit}" is not a percentage.`, hint: 'Use a number from 0 to 100, for example: at most "5" percent of pages changed.' });
@@ -540,20 +543,20 @@ Then(/^the diffy comparison should have at most "([^"]*)" percent of pages chang
 
 /**
  * Make the last screenshot set of this scenario the baseline of the Diffy
- * project, which "compare diffy ... with "baseline"" compares against. This
+ * project, which "visually compare ... with "baseline"" compares against. This
  * replaces the baseline the project had.
  *
  * Diffy API: PUT projects/{id}/set-base-line-set/{screenshotId}
  *
- * Example #1: Then set the last diffy screenshots as the baseline
- * Example #2: And set the last diffy screenshots as the baseline
- * Example #3: Then I set the last diffy screenshots as the baseline
- * Example #4: Then we set the last diffy screenshots as the baseline
- * Example #5: And I set the last diffy screenshots as the baseline
- * Example #6: But we set the last diffy screenshots as the baseline
+ * Example #1: Then set the last visual screenshots as the baseline
+ * Example #2: And set the last visual screenshots as the baseline
+ * Example #3: Then I set the last visual screenshots as the baseline
+ * Example #4: Then we set the last visual screenshots as the baseline
+ * Example #5: And I set the last visual screenshots as the baseline
+ * Example #6: But we set the last visual screenshots as the baseline
  *
  */
-Then(/^(I |we )*set the last diffy screenshots as the baseline$/, async function (pronounCase) {
+Then(/^(I |we )*set the last visual screenshots as the baseline$/, handlers.baseline = async function (pronounCase) {
   const ids = screenshotIds(this, 1);
   await this.diffy.setBaseline(ids[ids.length - 1]);
 });
@@ -565,14 +568,59 @@ Then(/^(I |we )*set the last diffy screenshots as the baseline$/, async function
  *
  * Diffy API: GET projects/{id}
  *
- * Example #1: Given the diffy project is reachable
- * Example #2: Then the diffy project should be reachable
- * Example #3: And the diffy project is reachable
- * Example #4: And the diffy project should be reachable
- * Example #5: But the diffy project is reachable
+ * Example #1: Given the visual comparison project is reachable
+ * Example #2: Then the visual comparison project should be reachable
+ * Example #3: And the visual comparison project is reachable
+ * Example #4: And the visual comparison project should be reachable
+ * Example #5: But the visual comparison project is reachable
  *
  */
-Then(/^the diffy project (?:is|should be) reachable$/, async function () {
+Then(/^the visual comparison project (?:is|should be) reachable$/, handlers.reachable = async function () {
   const project = await this.diffy.getProject();
   this.attach(`Diffy project ${this.diffyConfig.projectId}${project && project.name ? `: "${project.name}"` : ''} is reachable.`);
 });
+
+// ---------------------------------------------------------------------------
+// Deprecated wording
+//
+// These phrases named the service; the steps above say "visual comparison"
+// instead. The earlier wording keeps working for one more release: it runs
+// the same step and prints, once per run, the phrase that replaces it. It is
+// registered here, without examples, so the documentation lists only the new
+// wording.
+// ---------------------------------------------------------------------------
+
+const DEPRECATED = [
+  [/^(I |we )*send screenshots to diffy with name "([^"]*)"$/, 'send the screenshots for visual comparison with name "…"', handlers.send],
+  [/^(I |we )*create diffy comparison$/, 'create a visual comparison', handlers.compare],
+  [/^(I |we )*create diffy comparison with name "([^"]*)"$/, 'create a visual comparison with name "…"', handlers.compareNamed],
+  [/^(I |we )*create diffy screenshot from "([^"]*)" environment$/, 'create a visual screenshot from the "…" environment', handlers.environmentScreenshot],
+  [/^(I |we )*create diffy screenshot from the custom environment "([^"]*)"$/, 'create a visual screenshot from the custom environment "…"', handlers.customScreenshot],
+  [/^(I |we )*compare diffy "([^"]*)" with "([^"]*)"(?: with name "([^"]*)")?$/, 'visually compare "…" with "…"', handlers.compareEnvironments],
+  [/^(I |we )*upload folder "([^"]*)" to diffy as "([^"]*)"$/, 'upload the folder "…" for visual comparison as "…"', handlers.uploadFolder],
+  [/^(I |we )*wait for diffy comparison to complete$/, 'wait for the visual comparison to complete', handlers.waitComparison, { timeout: -1 }],
+  [/^(I |we )*wait for diffy screenshots to complete$/, 'wait for the visual screenshots to complete', handlers.waitScreenshots, { timeout: -1 }],
+  [/^the diffy comparison should( not)* have changes$/, 'the visual comparison should (not) have changes', handlers.changes, { timeout: -1 }],
+  [/^the diffy comparison should have at most "([^"]*)" percent of pages changed$/, 'the visual comparison should have at most "…" percent of pages changed', handlers.percent, { timeout: -1 }],
+  [/^(I |we )*set the last diffy screenshots as the baseline$/, 'set the last visual screenshots as the baseline', handlers.baseline],
+  [/^the diffy project (?:is|should be) reachable$/, 'the visual comparison project is reachable', handlers.reachable]
+];
+const warned = new Set();
+
+function deprecated(phrase, handler) {
+  const step = function (...args) {
+    if (!warned.has(phrase)) {
+      warned.add(phrase);
+      console.warn(`@webship-js/diffy-steps: this wording is deprecated and goes in the next release; write "${phrase}" instead.`);
+    }
+    return handler.apply(this, args);
+  };
+  // cucumber-js checks a step function's number of parameters.
+  Object.defineProperty(step, 'length', { value: handler.length });
+  return step;
+}
+
+for (const [pattern, phrase, handler, options] of DEPRECATED) {
+  if (options) Then(pattern, options, deprecated(phrase, handler));
+  else Then(pattern, deprecated(phrase, handler));
+}

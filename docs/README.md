@@ -12,19 +12,19 @@ Start with the [root README](../README.md) for installation, configuration, and 
 | `When I resize window to "<value>"` | [when-i-resize-window-to-value](steps/when-i-resize-window-to-value.md) |
 | `Then I take screenshot` | [then-i-take-screenshot](steps/then-i-take-screenshot.md) |
 | `Then I take screenshots for all breakpoints` | [then-i-take-screenshots-for-all-breakpoints](steps/then-i-take-screenshots-for-all-breakpoints.md) |
-| `Then send screenshots to diffy with name "<value>"` | [then-send-screenshots-to-diffy-with-name-value](steps/then-send-screenshots-to-diffy-with-name-value.md) |
-| `Then create diffy comparison` | [then-create-diffy-comparison](steps/then-create-diffy-comparison.md) |
-| `Then create diffy comparison with name "<value>"` | [then-create-diffy-comparison-with-name-value](steps/then-create-diffy-comparison-with-name-value.md) |
-| `Then create diffy screenshot from "<value>" environment` | [then-create-diffy-screenshot-from-value-environment](steps/then-create-diffy-screenshot-from-value-environment.md) |
-| `Then create diffy screenshot from the custom environment "<value>"` | [then-create-diffy-screenshot-from-the-custom-environment-value](steps/then-create-diffy-screenshot-from-the-custom-environment-value.md) |
-| `Then compare diffy "<value>" with "<value>"` | [then-compare-diffy-value-with-value](steps/then-compare-diffy-value-with-value.md) |
-| `Then upload folder "<value>" to diffy as "<value>"` | [then-upload-folder-value-to-diffy-as-value](steps/then-upload-folder-value-to-diffy-as-value.md) |
-| `Then wait for diffy comparison to complete` | [then-wait-for-diffy-comparison-to-complete](steps/then-wait-for-diffy-comparison-to-complete.md) |
-| `Then wait for diffy screenshots to complete` | [then-wait-for-diffy-screenshots-to-complete](steps/then-wait-for-diffy-screenshots-to-complete.md) |
-| `Then the diffy comparison should have changes` | [then-the-diffy-comparison-should-have-changes](steps/then-the-diffy-comparison-should-have-changes.md) |
-| `Then the diffy comparison should have at most "<value>" percent of pages changed` | [then-the-diffy-comparison-should-have-at-most-value-percent-of-pages-changed](steps/then-the-diffy-comparison-should-have-at-most-value-percent-of-pages-changed.md) |
-| `Then set the last diffy screenshots as the baseline` | [then-set-the-last-diffy-screenshots-as-the-baseline](steps/then-set-the-last-diffy-screenshots-as-the-baseline.md) |
-| `Given the diffy project is reachable` | [given-the-diffy-project-is-reachable](steps/given-the-diffy-project-is-reachable.md) |
+| `Then send the screenshots for visual comparison with name "<value>"` | [then-send-the-screenshots-for-visual-comparison-with-name-value](steps/then-send-the-screenshots-for-visual-comparison-with-name-value.md) |
+| `Then create a visual comparison` | [then-create-a-visual-comparison](steps/then-create-a-visual-comparison.md) |
+| `Then create a visual comparison with name "<value>"` | [then-create-a-visual-comparison-with-name-value](steps/then-create-a-visual-comparison-with-name-value.md) |
+| `Then create a visual screenshot from the "<value>" environment` | [then-create-a-visual-screenshot-from-the-value-environment](steps/then-create-a-visual-screenshot-from-the-value-environment.md) |
+| `Then create a visual screenshot from the custom environment "<value>"` | [then-create-a-visual-screenshot-from-the-custom-environment-value](steps/then-create-a-visual-screenshot-from-the-custom-environment-value.md) |
+| `Then visually compare "<value>" with "<value>"` | [then-visually-compare-value-with-value](steps/then-visually-compare-value-with-value.md) |
+| `Then upload the folder "<value>" for visual comparison as "<value>"` | [then-upload-the-folder-value-for-visual-comparison-as-value](steps/then-upload-the-folder-value-for-visual-comparison-as-value.md) |
+| `Then wait for the visual comparison to complete` | [then-wait-for-the-visual-comparison-to-complete](steps/then-wait-for-the-visual-comparison-to-complete.md) |
+| `Then wait for the visual screenshots to complete` | [then-wait-for-the-visual-screenshots-to-complete](steps/then-wait-for-the-visual-screenshots-to-complete.md) |
+| `Then the visual comparison should have changes` | [then-the-visual-comparison-should-have-changes](steps/then-the-visual-comparison-should-have-changes.md) |
+| `Then the visual comparison should have at most "<value>" percent of pages changed` | [then-the-visual-comparison-should-have-at-most-value-percent-of-pages-changed](steps/then-the-visual-comparison-should-have-at-most-value-percent-of-pages-changed.md) |
+| `Then set the last visual screenshots as the baseline` | [then-set-the-last-visual-screenshots-as-the-baseline](steps/then-set-the-last-visual-screenshots-as-the-baseline.md) |
+| `Given the visual comparison project is reachable` | [given-the-visual-comparison-project-is-reachable](steps/given-the-visual-comparison-project-is-reachable.md) |
 <!-- steps:end -->
 
 ## Source layout
@@ -32,7 +32,7 @@ Start with the [root README](../README.md) for installation, configuration, and 
 ```
 diffy-steps/
 ├── docs/steps/                 one page per step, generated by npm run docs
-├── examples/diffy/             baseline and changed example pages
+├── examples/pages/             baseline and changed example pages
 └── tests/
     ├── features/               reference scenarios, run in both lanes
     ├── step-definitions/       the published pack

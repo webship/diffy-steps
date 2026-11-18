@@ -207,7 +207,7 @@ test('a diff can be held in a stopped state, and failures can be injected', asyn
 test('appending images to a screenshot is accepted with PUT and with POST', async () => {
   const id = await (await call('POST', 'projects/1001/create-custom-snapshot', upload('a', [{ buffer: PNG_A, url: '/', breakpoint: 640 }]))).json();
   for (const method of ['PUT', 'POST']) {
-    const res = await call(method, `snapshots/${id}`, upload('a', [{ buffer: PNG_B, url: '/diffy/baseline.html', breakpoint: 640 }]));
+    const res = await call(method, `snapshots/${id}`, upload('a', [{ buffer: PNG_B, url: '/pages/baseline.html', breakpoint: 640 }]));
     assert.strictEqual(res.status, 200, method);
     assert.strictEqual((await res.json()).id, id);
   }

@@ -1,4 +1,4 @@
-# Then send screenshots to diffy with name "<value>"
+# Then send the screenshots for visual comparison with name "<value>"
 
 > Generated from the docblock of the step in `tests/step-definitions/diffy.steps.js`. Edit the docblock and run `npm run docs`.
 
@@ -13,16 +13,16 @@ POST projects/{id}/create-custom-snapshot (multipart), and PUT snapshots/{id} fo
 ## Gherkin step pattern
 
 ```
-/^(I |we )*send screenshots to diffy with name "([^"]*)"$/
+/^(I |we )*send (?:the )?screenshots for visual comparison with name "([^"]*)"$/
 ```
 
 ## Examples
 
 ```gherkin
-Then send screenshots to diffy with name "baseline"
-Then send screenshots to diffy with name "changed"
-Then send screenshots to diffy with name "homepage-release-2.0"
-Then send screenshots to diffy with name "after-deploy"
-Then send screenshots to diffy with name "smoke-run"
-Then send screenshots to diffy with name "webship.co-prod"
+Then send the screenshots for visual comparison with name "baseline"
+Then send the screenshots for visual comparison with name "changed"
+Then send the screenshots for visual comparison with name "homepage-release-2.0"
+Then send the screenshots for visual comparison with name "after-deploy"
+Then send the screenshots for visual comparison with name "smoke-run"
+Then send the screenshots for visual comparison with name "webship.co-prod"
 ```

@@ -100,10 +100,14 @@ test('an upload is validated: image type, counts, URLs outside the project, func
 });
 
 test('an uploaded screenshot is polled through its states, a diff of different images changes', async () => {
+  const started = Date.now();
   const a = await (await call('POST', 'projects/1001/create-custom-snapshot', upload('a', [{ buffer: PNG_A, url: '/', breakpoint: 640 }]))).json();
-  const b = await (await call('POST', 'projects/1001/create-custom-snapshot', upload('b', [{ buffer: PNG_B, url: '/', breakpoint: 640 }]))).json();
   const first = await (await call('GET', `snapshots/${a}`)).json();
-  assert.strictEqual(first.state, 1);
+  // In progress for one stage (40 ms) from the upload, completed after it: a
+  // slow machine may read it late, so state 1 is required only within the stage.
+  if (Date.now() - started < 40) assert.strictEqual(first.state, 1);
+  else assert.ok([1, 2].includes(first.state), `unexpected first state ${first.state}`);
+  const b = await (await call('POST', 'projects/1001/create-custom-snapshot', upload('b', [{ buffer: PNG_B, url: '/', breakpoint: 640 }]))).json();
   assert.strictEqual(first.name, 'a');
   await poll(`snapshots/${a}`, (d) => d.state === 2);
 

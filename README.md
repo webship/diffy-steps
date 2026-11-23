@@ -14,7 +14,7 @@ Then create a visual comparison with name "release-1.4 against 1.3"
 And the visual comparison should have at most "0" percent of pages changed
 ```
 
-The pack is a plugin: it does not run on its own, and it needs a webship-js 2.x test project. It uses the Diffy REST API as documented in the [Diffy Swagger](https://app.diffy.website/rest) and has no dependency of its own (Node.js 20 or later).
+The pack is a plugin: it does not run on its own, and it needs a webship-js 2.x test project. It uses the Diffy REST API as documented in the [Diffy Swagger](https://app.diffy.website/rest) and has no dependency of its own (Node.js 24 or later).
 
 ## What is proven, and what needs a Diffy key
 
@@ -45,7 +45,7 @@ No run against the real service has been made for this version. See [what the li
 
 ## From nothing to a green run
 
-What the machine needs: git and Node.js 20 or later with npm. No Diffy account:
+What the machine needs: git and Node.js 24 or later with npm. No Diffy account:
 the first run talks to the mock of the Diffy API that this repository's own
 suite uses, started on its own.
 

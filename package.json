@@ -64,6 +64,6 @@
     "webship-js": "^2.0.4"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=24"
   }
 }
